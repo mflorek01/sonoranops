@@ -52,7 +52,7 @@ def as_utc(value: datetime) -> datetime:
 
 
 def new_id(prefix: str) -> str:
-    return f"{prefix}_{uuid4()}"
+    return f"{prefix}_{uuid4().hex}"
 
 
 def evaluate_quality(

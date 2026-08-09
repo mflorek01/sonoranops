@@ -186,7 +186,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 ensure_asset(session, input_observation.asset_ref)
                 flags = evaluate_quality(session, input_observation, batch.source.source_id, now)
                 observation = Observation(
-                    observation_id=f"obs_{uuid4()}",
+                    observation_id=f"obs_{uuid4().hex}",
                     idempotency_key=input_observation.idempotency_key,
                     source_id=batch.source.source_id,
                     source_type=batch.source.source_type,

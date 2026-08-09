@@ -1,7 +1,7 @@
 # Production deployment
 
 This runbook deploys the synthetic Sonoran Operations Intelligence demo at
-`https://matthewflorek.com/portfolio/sonoran-ops/`. It uses the standalone
+`https://matthewflorek.com/portfolio/sonoran-ops`. It uses the standalone
 `compose.production.yaml`; the existing `compose.yaml` remains local-development orchestration.
 
 ## Prerequisites
@@ -30,8 +30,6 @@ Add the exact API allowlist before the web route in the existing Caddy site. Pre
 Next and strip it only for allowed FastAPI requests:
 
 ```caddyfile
-redir /portfolio/sonoran-ops /portfolio/sonoran-ops/ 308
-
 @sonoranReadApi {
     method GET
     path /portfolio/sonoran-ops/api/v1/health /portfolio/sonoran-ops/api/v1/assets* /portfolio/sonoran-ops/api/v1/observations* /portfolio/sonoran-ops/api/v1/findings* /portfolio/sonoran-ops/api/v1/incidents*
@@ -55,7 +53,8 @@ handle @sonoranDeniedApi {
     respond "Method Not Allowed" 405
 }
 
-handle /portfolio/sonoran-ops/* {
+@sonoranWeb path /portfolio/sonoran-ops /portfolio/sonoran-ops/*
+handle @sonoranWeb {
     reverse_proxy sonoran-web:3000
 }
 ```
@@ -113,9 +112,9 @@ duplicate handling; do not treat it as a database reset.
 
 ```bash
 curl --fail http://127.0.0.1:3212/api/v1/health
-curl --fail http://127.0.0.1:3211/portfolio/sonoran-ops/
+curl --fail http://127.0.0.1:3211/portfolio/sonoran-ops
 curl --fail https://matthewflorek.com/portfolio/sonoran-ops/api/v1/health
-curl --fail https://matthewflorek.com/portfolio/sonoran-ops/
+curl --fail https://matthewflorek.com/portfolio/sonoran-ops
 docker compose --env-file /secure/path/sonoran-production.env \
   -f compose.production.yaml ps
 ```

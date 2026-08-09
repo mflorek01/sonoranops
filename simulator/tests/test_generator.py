@@ -6,16 +6,45 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from sonoran_sim.contract import FORBIDDEN_PRIVATE_TERMS, SCHEMA_PATH, validate_batch
 from sonoran_sim.generator import PlantGenerator, SimulationConfig
-from sonoran_sim.publisher import JsonlPublisher
+from sonoran_sim.publisher import ApiPublisher, JsonlPublisher
 
 
 def rendered(config: SimulationConfig) -> list[dict]: return list(PlantGenerator(config).batches())
 
 
 class GeneratorTests(unittest.TestCase):
+    def test_api_publisher_uses_stable_per_batch_idempotency_key(self) -> None:
+        batch = rendered(SimulationConfig(seed=41, minutes=1, scenarios=()))[0]
+        captured = []
+
+        class Response:
+            status = 201
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+        def fake_open(request, timeout):
+            self.assertEqual(timeout, 15)
+            captured.append(request)
+            return Response()
+
+        publisher = ApiPublisher("http://api:8000")
+        with patch("sonoran_sim.publisher.urlopen", side_effect=fake_open):
+            publisher.publish(batch)
+            publisher.publish(json.loads(json.dumps(batch)))
+
+        keys = [dict(request.header_items())["Idempotency-key"] for request in captured]
+        self.assertEqual(len(keys), 2)
+        self.assertEqual(keys[0], keys[1])
+        self.assertTrue(keys[0].startswith("sim-batch-"))
+
     def test_same_seed_is_byte_stable(self) -> None:
         config = SimulationConfig(seed=23, minutes=70)
         self.assertEqual(json.dumps(rendered(config), sort_keys=True), json.dumps(rendered(config), sort_keys=True))

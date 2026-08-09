@@ -14,6 +14,8 @@ import type {
 import { demoApi } from "./demo";
 
 const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+const rawBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const basePath = rawBasePath === "/" ? "" : `/${rawBasePath.replace(/^\/+|\/+$/g, "")}`.replace(/^\/$/, "");
 const demoEnabled = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 type ListResponse<T> = { items: T[]; next_cursor?: string | null };
@@ -87,7 +89,7 @@ const toIncidentDetail = (incident: ApiIncidentDetail): IncidentDetail => ({
 
 class HttpOperationsApi implements OperationsApi {
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(`${baseUrl}/api/v1${path}`, {
+    const response = await fetch(`${baseUrl || basePath}/api/v1${path}`, {
       ...init,
       headers: { "Content-Type": "application/json", ...init?.headers },
       cache: "no-store",

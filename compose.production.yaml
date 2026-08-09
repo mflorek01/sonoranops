@@ -1,0 +1,158 @@
+name: sonoran-ops
+
+x-logging: &capped-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sonoran_ops}
+      POSTGRES_USER: ${POSTGRES_USER:-sonoran}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the production environment}
+    volumes:
+      - sonoran_postgres_data:/var/lib/postgresql/data
+    networks:
+      - sonoran_private
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    mem_limit: 768m
+    cpus: 0.75
+    pids_limit: 200
+    restart: unless-stopped
+    logging: *capped-logging
+
+  migrate:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    command: ["alembic", "-c", "/app/infra/alembic.ini", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sonoran}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the production environment}@db:5432/${POSTGRES_DB:-sonoran_ops}
+      AUTO_CREATE_SCHEMA: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sonoran_private
+    mem_limit: 256m
+    cpus: 0.50
+    pids_limit: 100
+    restart: "no"
+    logging: *capped-logging
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--root-path", "/portfolio/sonoran-ops"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sonoran}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the production environment}@db:5432/${POSTGRES_DB:-sonoran_ops}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://matthewflorek.com}
+      AUTO_CREATE_SCHEMA: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${SONORAN_API_PORT:-3212}:8000"
+    networks:
+      sonoran_private: {}
+      sonoran_edge:
+        aliases:
+          - sonoran-api
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 15s
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 200
+    restart: unless-stopped
+    logging: *capped-logging
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/portfolio/sonoran-ops}
+        NEXT_PUBLIC_DEMO_MODE: "false"
+        NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-/portfolio/sonoran-ops}
+        NEXT_PUBLIC_READ_ONLY_MODE: "true"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/portfolio/sonoran-ops}
+      NEXT_PUBLIC_DEMO_MODE: "false"
+      NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-/portfolio/sonoran-ops}
+      NEXT_PUBLIC_READ_ONLY_MODE: "true"
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${SONORAN_WEB_PORT:-3211}:3000"
+    networks:
+      sonoran_edge:
+        aliases:
+          - sonoran-web
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/portfolio/sonoran-ops/', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+    mem_limit: 384m
+    cpus: 0.75
+    pids_limit: 150
+    restart: unless-stopped
+    logging: *capped-logging
+
+  seed:
+    profiles: ["seed"]
+    build:
+      context: .
+      dockerfile: infra/docker/simulator.Dockerfile
+    command:
+      - --seed
+      - ${DEMO_SEED:-17}
+      - --minutes
+      - ${DEMO_MINUTES:-180}
+      - --wallclock-span-minutes
+      - ${DEMO_WALLCLOCK_SPAN_MINUTES:-4}
+      - --anchor-end
+      - now
+      - --api-url
+      - http://api:8000
+      - --truth-output
+      - /tmp/evaluator-private/scenario-truth.json
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - sonoran_private
+    mem_limit: 256m
+    cpus: 0.50
+    pids_limit: 100
+    restart: "no"
+    logging: *capped-logging
+
+volumes:
+  sonoran_postgres_data:
+    name: sonoran_postgres_data
+
+networks:
+  sonoran_private:
+    name: sonoran_private
+    internal: true
+  sonoran_edge:
+    name: sonoran_edge
+    external: true

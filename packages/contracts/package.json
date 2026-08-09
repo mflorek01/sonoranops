@@ -1,0 +1,7 @@
+{
+  "name": "@sonoran/contracts",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Platform-visible versioned API and event contracts.",
+  "scripts": {}
+}

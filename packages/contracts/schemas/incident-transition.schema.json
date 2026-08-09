@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sonoran-ops.dev/contracts/incident-transition/1.0.schema.json",
+  "title": "Incident transition request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["to_status", "actor"],
+  "properties": {
+    "to_status": {"enum": ["acknowledged", "investigating", "mitigated", "resolved", "dismissed"]},
+    "reason": {"type": "string", "maxLength": 2000},
+    "actor": {"type": "string", "minLength": 1, "maxLength": 128}
+  }
+}

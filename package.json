@@ -1,0 +1,31 @@
+{
+  "name": "sonoran-operations-intelligence",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Industrial intelligence platform for a synthetic aggregate and materials operation.",
+  "packageManager": "npm@10.8.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "install": "npm run web:install && npm run api:install",
+    "web:install": "npm ci --prefix apps/web",
+    "api:install": "python -m pip install -e \"./services/api[dev]\"",
+    "dev": "docker compose up --build",
+    "demo:up": "docker compose up --build -d",
+    "demo:down": "docker compose down",
+    "compose:config": "docker compose config",
+    "contracts:test": "python -m pytest services/api/tests/test_contracts.py -q",
+    "api:test": "python -m pytest services/api/tests -q",
+    "web:test": "npm --prefix apps/web run test",
+    "test": "npm run api:test && npm run web:test",
+    "api:lint": "python -m ruff check services/api",
+    "web:lint": "npm --prefix apps/web run lint",
+    "lint": "npm run api:lint && npm run web:lint",
+    "api:build": "python -m compileall -q services/api/app infra/migrations",
+    "web:build": "npm --prefix apps/web run build",
+    "build": "npm run api:build && npm run web:build",
+    "typecheck": "npm --prefix apps/web run typecheck",
+    "migrate": "alembic -c infra/alembic.ini upgrade head"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "contract_version": "1.0",
+  "source": {"source_id": "telemetry-crusher-01", "source_type": "telemetry", "received_via": "api"},
+  "observations": [{
+    "idempotency_key": "telemetry-0001",
+    "observed_at": "2026-08-08T18:42:00Z",
+    "asset_ref": {"site_id": "sonoran-west", "asset_id": "primary-crusher-01"},
+    "kind": "telemetry",
+    "metric": "motor_current_amps",
+    "value": 327.4,
+    "unit": "A",
+    "source_recorded_at": "2026-08-08T18:42:00Z",
+    "attributes": {"sample_interval_seconds": 60}
+  }]
+}

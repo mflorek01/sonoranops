@@ -1,0 +1,15 @@
+.git
+.env
+.venv
+.ruff_cache
+.next
+node_modules
+.venv
+venv
+__pycache__
+.pytest_cache
+coverage
+data
+tmp
+evaluation/runs
+work

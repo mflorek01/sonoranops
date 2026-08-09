@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.assistant_tools import ToolInputError, invoke_tool
 from app.config import Settings
 from app.database import build_engine, build_session_factory, create_schema, session_dependency
-from app.models import Asset, Finding, Incident, Observation
+from app.models import Asset, Finding, Incident, IncidentFinding, Observation
 from app.platform import (
     asset_response,
     create_quality_finding,
@@ -32,6 +32,7 @@ from app.platform import (
     transition_incident,
     utc_now,
 )
+from app.read_models import linked_observation_ids, operations_briefing_response
 from app.schemas import (
     AssistantToolRequest,
     AssistantToolResponse,
@@ -42,6 +43,7 @@ from app.schemas import (
     ObservationBatchRequest,
     ObservationBatchResponse,
     ObservationResponse,
+    OperationsBriefingResponse,
 )
 
 
@@ -338,6 +340,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             next_cursor=next_cursor,
         )
 
+    @app.get("/api/v1/operations/briefing", response_model=OperationsBriefingResponse)
+    def get_operations_briefing(
+        site_id: str = Query(min_length=1, max_length=128),
+        session: Session = Depends(get_session),
+    ) -> OperationsBriefingResponse:
+        """Expose the public demo's stored evidence without inferred operating claims."""
+
+        return operations_briefing_response(session, site_id)
+
     @app.get("/api/v1/incidents", response_model=ListResponse)
     def list_incidents(
         session: Session = Depends(get_session),
@@ -392,14 +403,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             select(Incident)
             .options(
                 selectinload(Incident.asset),
-                selectinload(Incident.finding_links),
+                selectinload(Incident.finding_links)
+                .selectinload(IncidentFinding.finding)
+                .selectinload(Finding.asset),
                 selectinload(Incident.timeline_entries),
             )
             .where(Incident.incident_id == incident_id)
         )
         if incident is None:
             raise HTTPException(status_code=404, detail="incident not found")
-        return incident_detail_response(incident)
+        evidence_ids = linked_observation_ids(incident)
+        linked_observations = (
+            list(
+                session.scalars(
+                    select(Observation)
+                    .options(selectinload(Observation.asset))
+                    .where(Observation.observation_id.in_(evidence_ids))
+                )
+            )
+            if evidence_ids
+            else []
+        )
+        return incident_detail_response(incident, linked_observations)
 
     @app.post(
         "/api/v1/incidents/{incident_id}/transitions",
@@ -421,7 +446,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 select(Incident)
                 .options(
                     selectinload(Incident.asset),
-                    selectinload(Incident.finding_links),
+                    selectinload(Incident.finding_links)
+                    .selectinload(IncidentFinding.finding)
+                    .selectinload(Finding.asset),
                     selectinload(Incident.timeline_entries),
                 )
                 .where(Incident.incident_id == incident_id)

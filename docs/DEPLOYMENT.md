@@ -32,7 +32,7 @@ Next and strip it only for allowed FastAPI requests:
 ```caddyfile
 @sonoranReadApi {
     method GET
-    path /portfolio/sonoran-ops/api/v1/health /portfolio/sonoran-ops/api/v1/assets* /portfolio/sonoran-ops/api/v1/observations* /portfolio/sonoran-ops/api/v1/findings* /portfolio/sonoran-ops/api/v1/incidents*
+    path /portfolio/sonoran-ops/api/v1/health /portfolio/sonoran-ops/api/v1/operations* /portfolio/sonoran-ops/api/v1/assets* /portfolio/sonoran-ops/api/v1/observations* /portfolio/sonoran-ops/api/v1/findings* /portfolio/sonoran-ops/api/v1/incidents*
 }
 handle @sonoranReadApi {
     uri strip_prefix /portfolio/sonoran-ops

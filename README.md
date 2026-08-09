@@ -1,6 +1,18 @@
 # Sonoran Operations Intelligence
 
-Sonoran Operations Intelligence is a portfolio-grade industrial intelligence platform for a **synthetic** aggregate and materials operation. It turns simulated operating signals into traceable production, equipment-health, quality, and incident workflows.
+Sonoran Operations Intelligence is a public, portfolio-grade operations-data
+application for a **synthetic** aggregate and materials operation. It turns
+published simulation observations into traceable data-quality findings,
+incidents, evidence, and a bounded investigation experience.
+
+**Live demo:** [matthewflorek.com/portfolio/sonoran-ops](https://matthewflorek.com/portfolio/sonoran-ops)
+
+**Repository:** [github.com/mflorek01/sonoranops](https://github.com/mflorek01/sonoranops)
+
+The demo is read-only, uses no customer or Granite data, and makes no claim of
+plant control, safety certification, autonomous action, or mechanical root
+cause. It is intended to show the application and data-product decisions that
+would be needed for an asset-intensive operations use case.
 
 The application is intentionally split into two systems:
 
@@ -18,14 +30,14 @@ The platform must never read generator state, scenario schedules, fault labels, 
 | `packages/contracts` | Versioned, platform-safe shared API/event schemas and generated clients |
 | `simulator` | Synthetic plant generator, fixtures, and evaluation-only truth |
 | `infra` | Docker, database, and deployment assets |
-| `docs` | Architecture, data contracts, and developer workflow |
+| `docs` | Architecture, data contracts, recruiter journey, deployment, and developer workflow |
 | `evaluation` | Evaluation harnesses and non-production run outputs |
 
 ## Run locally
 
 Prerequisites: Docker Desktop with Compose, Node.js 20+ with npm, and Python 3.12+ for host-side development.
 
-1. Read the [implementation plan](docs/IMPLEMENTATION_PLAN.md), [architecture](docs/ARCHITECTURE.md), [data contracts](docs/DATA_CONTRACTS.md), and [development guide](docs/DEVELOPMENT.md). The isolated public-server workflow is in the [production deployment runbook](docs/DEPLOYMENT.md).
+1. Read the [implementation plan](docs/IMPLEMENTATION_PLAN.md), [recruiter journey and authenticity standard](docs/RECRUITER_JOURNEY.md), [architecture](docs/ARCHITECTURE.md), [data contracts](docs/DATA_CONTRACTS.md), and [development guide](docs/DEVELOPMENT.md). The isolated public-server workflow is in the [production deployment runbook](docs/DEPLOYMENT.md).
 2. Copy `.env.example` to `.env` and replace the development database password if desired.
 3. Start the complete local stack with `npm run demo:up`.
 4. Open `http://localhost:3000`. The API health check is at `http://localhost:8000/api/v1/health`.
@@ -51,8 +63,28 @@ npm run migrate
 
 `npm run install` installs web dependencies from its committed lockfile and API dependencies from `services/api/pyproject.toml`. `npm run migrate` uses `DATABASE_URL` from `.env` (or the active shell).
 
-See [Integration notes](docs/INTEGRATION.md) for the live web/API adapter and its deliberately limited derived UI fields.
+See [Integration notes](docs/INTEGRATION.md) for the live web/API adapter and
+its deliberately limited derived UI fields. The public demonstration journey
+and its evidence-first UX acceptance criteria live in
+[docs/RECRUITER_JOURNEY.md](docs/RECRUITER_JOURNEY.md).
 
 ## Current status
 
-The first platform slice is available: public contract validation, idempotent ingestion, data-quality findings, incident lifecycle APIs, a typed web adapter, database migrations, and a containerized local runtime. The synthetic simulator/evaluation system, authentication, external source adapters, production availability calculations, and the read-only assistant remain future work.
+The working demo includes contract validation, idempotent ingestion,
+data-quality findings, incident lifecycle APIs, a typed web adapter, database
+migrations, containerized local and public runtimes, a seeded synthetic replay,
+a database-derived operations briefing, and deterministic, cited, read-only
+evidence tools. The simulator publishes only public observations to the
+platform; private scenario truth is retained for evaluation and is not
+available to application code.
+
+The evidence-first recruiter walkthrough is implemented and current. It guides
+free exploration from the operating story to incident evidence and data-quality
+context, while replacing decorative or invented presentation values with
+traceable public data. Its product decisions and acceptance criteria are in
+[RECRUITER_JOURNEY.md](docs/RECRUITER_JOURNEY.md).
+
+Still out of scope for this portfolio release: real customer connectors and
+data, authentication/SSO and enterprise RBAC, production availability
+calculations, managed operational infrastructure, and production assistant
+governance such as audit retention and rate limiting.

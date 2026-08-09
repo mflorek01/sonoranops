@@ -41,6 +41,18 @@ def test_incident_aggregates_findings_and_keeps_audited_transition_timeline(clie
     assert before.status_code == 200
     assert before.json()["status"] == "open"
     assert len(before.json()["finding_ids"]) == 1
+    assert len(before.json()["linked_findings"]) == 1
+    linked_finding = before.json()["linked_findings"][0]
+    assert linked_finding["detector"] == {"name": "ingestion-quality", "version": "1.0.0"}
+    assert linked_finding["evaluated_window"]["start_at"]
+    assert linked_finding["evaluated_window"]["end_at"]
+    assert linked_finding["rationale"]
+    assert linked_finding["data_quality_summary"]["status"] == "degraded"
+    assert linked_finding["data_quality_summary"]["flags"] == ["late_arrival"]
+    assert len(before.json()["linked_observations"]) == 1
+    linked_observation = before.json()["linked_observations"][0]
+    trigger_observation_id = linked_finding["evidence"][0]["observation_id"]
+    assert linked_observation["observation_id"] == trigger_observation_id
     assert before.json()["timeline"][0]["actor"] == "system:ingestion"
 
     transition = {"to_status": "acknowledged", "actor": "operator:matt"}

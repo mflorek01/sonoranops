@@ -12,13 +12,14 @@ The web API client now consumes the platform's public endpoints:
 
 | Web need | Platform endpoint | Adapter behavior |
 | --- | --- | --- |
-| Incidents and lifecycle | `GET /incidents`, `GET /incidents/{id}`, `POST /incidents/{id}/transitions` | Converts snake_case/list envelopes, maps `to_status`, adds an idempotency key and `operator:web` actor |
-| Assets | `GET /assets`, `GET /observations` | Derives display name, last observed time, and data-quality health from observed records |
-| Overview/data trust | `GET /observations`, `GET /incidents` | Derives visible counts and quality score only from platform-visible observations |
+| Operations briefing | `GET /operations/briefing?site_id=sonoran-west` | Returns a transparent, stored-observation read model: replay boundary, count/window, production-record throughput series, clean-record median baseline, quality-flag counts, and per-asset observation/incident facts. It explicitly omits availability, plan, confidence, and causal diagnosis. |
+| Incidents and lifecycle | `GET /incidents`, `GET /incidents/{id}`, `POST /incidents/{id}/transitions` | Converts snake_case/list envelopes, maps `to_status`, and receives expanded linked findings plus their source observations for incident detail. The public deployment renders lifecycle actions read-only. |
+| Asset context | `GET /operations/briefing` | Renders per-asset observation counts, flagged-record counts, latest observation time, and active-incident counts from briefing facts. The public UI does not present derived health or availability. |
+| Overview/data trust | `GET /operations/briefing`, `GET /incidents` | Uses database-derived counts, a defined production series/baseline, and explicit quality-flag totals. It must render unavailable values as unavailable rather than invent a score or fallback number. |
 
-The adapter intentionally does **not** invent plant truth. Several presentation fields have no platform equivalent yet: asset availability is observation presence (100 or 0), production delta is `0`, incident confidence is `0`, and incident evidence cards are empty because the incident detail API currently returns finding IDs/timeline, not expanded finding evidence. The UI also exposes lifecycle choices that may be rejected by the API's valid-transition rules. These are known product/API expansion items, not simulator fallbacks.
+The briefing endpoint and expanded incident detail resolve the previous presentation gaps: production is a returned `production_record.attributes.throughput_tph` series with a documented clean-record median baseline; asset context comes from stored observation and incident facts; and incident detail returns linked findings and linked observations. The API deliberately still does **not** provide operational availability, planned production, model confidence, financial exposure, or a causal diagnosis. The web client must omit or mark those values unavailable—not convert absence into `0`, `100%`, or a confident conclusion.
 
-`/operations/summary` and `/data-trust` are not backend endpoints; the browser derives their displayed values through public read APIs. Any later server-side aggregate must preserve those provenance rules and must not access simulator-private state.
+`/operations/summary` and `/data-trust` remain UI routes, not backend endpoints. Their visible claims are supported by `/operations/briefing` and the normal read APIs. The briefing is calculated only from stored public observation/incident rows and cannot access simulator-private state. The public interface and its guided evidence path are specified in [RECRUITER_JOURNEY.md](RECRUITER_JOURNEY.md).
 
 ## Current detector boundary
 

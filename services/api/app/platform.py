@@ -382,10 +382,25 @@ def incident_response(incident: Incident) -> IncidentResponse:
     )
 
 
-def incident_detail_response(incident: Incident) -> IncidentDetailResponse:
+def incident_detail_response(
+    incident: Incident, linked_observations: list[Observation] | None = None
+) -> IncidentDetailResponse:
     response = incident_response(incident)
     return IncidentDetailResponse(
         **response.model_dump(),
+        linked_findings=[
+            finding_response(link.finding)
+            for link in sorted(
+                incident.finding_links, key=lambda item: (item.linked_at, item.finding_id)
+            )
+            if link.finding is not None
+        ],
+        linked_observations=[
+            observation_response(observation)
+            for observation in sorted(
+                linked_observations or [], key=lambda item: (item.observed_at, item.observation_id)
+            )
+        ],
         timeline=[
             TimelineEntryResponse(
                 timeline_entry_id=entry.timeline_entry_id,

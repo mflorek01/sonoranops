@@ -185,7 +185,69 @@ class TimelineEntryResponse(ContractModel):
 
 
 class IncidentDetailResponse(IncidentResponse):
+    linked_findings: list[FindingResponse]
+    linked_observations: list[ObservationResponse]
     timeline: list[TimelineEntryResponse]
+
+
+class ReplayBoundaryResponse(ContractModel):
+    """States exactly which stored timestamps and records underpin the briefing."""
+
+    mode: Literal["stored_observation_replay"]
+    observation_time_field: Literal["observed_at"]
+    production_series_definition: Literal["production_record.attributes.throughput_tph"]
+    window_start_at: datetime | None
+    window_end_at: datetime | None
+    calculation_note: str
+
+
+class ProductionPointResponse(ContractModel):
+    observation_id: str
+    observed_at: datetime
+    value: float
+    unit: str | None
+    quality_status: str
+    quality_flags: list[str]
+
+
+class ProductionBaselineResponse(ContractModel):
+    method: Literal["median_of_clean_production_records"]
+    value: float | None
+    sample_count: int
+
+
+class ProductionSummaryResponse(ContractModel):
+    series: list[ProductionPointResponse]
+    current: ProductionPointResponse | None
+    baseline: ProductionBaselineResponse
+    delta_vs_baseline: float | None
+
+
+class DataQualityFlagCountResponse(ContractModel):
+    flag: str
+    observation_count: int
+
+
+class AssetBriefingResponse(ContractModel):
+    asset_id: str
+    observation_count: int
+    flagged_observation_count: int
+    active_incident_count: int
+    latest_observed_at: datetime | None
+
+
+class OperationsBriefingResponse(ContractModel):
+    """A transparent, database-derived read model for the public recruiter demo."""
+
+    site_id: str
+    replay_boundary: ReplayBoundaryResponse
+    observation_count: int
+    flagged_observation_count: int
+    oldest_observed_at: datetime | None
+    latest_observed_at: datetime | None
+    production: ProductionSummaryResponse
+    data_quality_flag_counts: list[DataQualityFlagCountResponse]
+    assets: list[AssetBriefingResponse]
 
 
 class IncidentTransitionRequest(ContractModel):

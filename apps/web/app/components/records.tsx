@@ -3,7 +3,7 @@ import type {
   IncidentDetail,
   OperationsBriefing,
 } from "../../lib/api/types";
-import { Empty, number, Panel, Pill, pretty, time } from "./shared";
+import { Empty, metricLabel, number, Panel, Pill, pretty, time } from "./shared";
 
 export function Incidents({
   incidents,
@@ -134,7 +134,7 @@ export function IncidentRecord({
                   </span>
                   <span>
                     {item.metric
-                      ? `${pretty(item.metric)}: ${number(item.value, 2)}${
+                      ? `${metricLabel(item.metric)}: ${number(item.value, 2)}${
                           item.unit ? ` ${item.unit}` : ""
                         }`
                       : "Metric not returned"}

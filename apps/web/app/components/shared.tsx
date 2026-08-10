@@ -5,6 +5,16 @@ export const pretty = (value: string) =>
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
+const metricLabels: Record<string, string> = {
+  belt_speed_mps: "Belt speed",
+  feed_rate_tph: "Feed rate",
+  motor_current_amps: "Motor current",
+  screen_load_percent: "Screen load",
+  vibration_mm_s: "Vibration",
+};
+
+export const metricLabel = (metric: string) => metricLabels[metric] ?? pretty(metric);
+
 export const time = (value?: string) =>
   value
     ? `${new Intl.DateTimeFormat("en-US", {

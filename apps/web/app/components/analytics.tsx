@@ -1,5 +1,5 @@
 import type { OperationsBriefing } from "../../lib/api/types";
-import { number, Panel, pretty, time } from "./shared";
+import { metricLabel, number, Panel, pretty, time } from "./shared";
 
 type AnalyticsView = "incidents" | "quality" | "explorer";
 
@@ -100,12 +100,12 @@ export function VisualAnalytics({
               const first = series.points[0];
               const last = series.points.at(-1);
               const flagged = series.points.filter((point) => point.qualityFlags.length).length;
-              const label = `${pretty(series.metric)} for ${series.assetId}: ${series.points.length} returned observations from ${number(first?.value, 2)} to ${number(last?.value, 2)} ${series.unit ?? ""}. ${flagged} points carry quality flags.`;
+              const label = `${metricLabel(series.metric)} for ${series.assetId}: ${series.points.length} returned observations from ${number(first?.value, 2)} to ${number(last?.value, 2)} ${series.unit ?? ""}. ${flagged} points carry quality flags.`;
 
               return (
                 <article className="small-multiple" key={`${series.assetId}-${series.metric}`}>
                   <header>
-                    <strong>{pretty(series.metric)}</strong>
+                    <strong>{metricLabel(series.metric)}</strong>
                     <span>{series.unit ?? "Unit not returned"}</span>
                   </header>
                   <p>{series.assetId}</p>
@@ -172,7 +172,7 @@ export function VisualAnalytics({
         </Panel>
       </div>
       <Panel
-        title="Returned process sequence"
+        title="Asset review sequence"
         detail="Nodes follow the API’s returned order. This is a review sequence, not a geographic plant map."
         action={<button className="text-button" onClick={() => onView("quality")}>Review quality detail</button>}
       >

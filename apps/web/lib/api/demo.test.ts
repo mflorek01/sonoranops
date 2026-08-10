@@ -30,4 +30,23 @@ describe("demo operations adapter", () => {
     expect(result.records.length).toBeGreaterThan(0);
     expect(result.uncertaintyNotes[0]).toContain("Local demo");
   });
+
+  it("makes the analyst's unavailable state explicit in local demo mode", async () => {
+    await expect(demoApi.chat("What should I review?")).rejects.toThrow(
+      "AI analyst is available",
+    );
+  });
+
+  it("provides bounded visual analytics with returned points and process facts", async () => {
+    const briefing = await demoApi.getBriefing();
+    const analytics = briefing.visualAnalytics;
+
+    expect(analytics?.metricSeries).toHaveLength(4);
+    expect(analytics?.metricSeries.every((series) => series.points.length > 0)).toBe(true);
+    expect(analytics?.processNodes.map((node) => node.assetId)).toEqual([
+      "primary-crusher-01",
+      "conveyor-17",
+      "wash-plant-02",
+    ]);
+  });
 });

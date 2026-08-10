@@ -4,6 +4,7 @@ import type {
   AssistantEvidenceResult,
   AssistantToolName,
   Incident,
+  OperationsBriefing,
 } from "../../lib/api/types";
 import { selectPriorityIncident } from "./incident-priority";
 import { Empty, Loading, Panel, pretty, time } from "./shared";
@@ -187,7 +188,20 @@ export function EvidenceExplorer({ incidents }: { incidents: Incident[] }) {
   );
 }
 
-export function HowItWorks() {
+export function HowItWorks({
+  briefing,
+  incidents,
+}: {
+  briefing: OperationsBriefing;
+  incidents: Incident[];
+}) {
+  const linkedFindingCount = incidents.reduce(
+    (total, incident) => total + incident.evidenceCount,
+    0,
+  );
+  const activeIncidentCount = incidents.filter(
+    (incident) => incident.state !== "resolved" && incident.state !== "dismissed",
+  ).length;
   return (
     <div className="view-stack">
       <section className="how-hero">
@@ -197,6 +211,62 @@ export function HowItWorks() {
           ingestion API. The platform receives observations, source timestamps,
           and quality flags—not scenario ground truth.
         </p>
+      </section>
+      <section className="static-answer" aria-labelledby="static-answer-title">
+        <div>
+          <h2 id="static-answer-title">Are these static charts?</h2>
+          <p>
+            No. The browser fetches stored records through the deployed API and renders each count,
+            sequence, and visual from that response. The synthetic replay is intentionally frozen so
+            the same evidence can be reviewed reproducibly.
+          </p>
+        </div>
+        <ol className="boundary-pipeline" aria-label="Current record pipeline">
+          <li><strong>{briefing.observationCount.toLocaleString()}</strong><span>stored observations</span></li>
+          <li><strong>{linkedFindingCount.toLocaleString()}</strong><span>linked findings</span></li>
+          <li><strong>{activeIncidentCount.toLocaleString()}</strong><span>open incidents</span></li>
+        </ol>
+      </section>
+      <section className="truth-table" aria-labelledby="truth-table-title">
+        <h2 id="truth-table-title">What this demonstration claims</h2>
+        <div>
+          <article>
+            <h3>Simulated</h3>
+            <p>Aggregate-plant measurements, assets, site context, and replay timing are synthetic.</p>
+          </article>
+          <article>
+            <h3>Real software</h3>
+            <p>HTTP ingestion, Postgres persistence, quality rules and detectors, APIs, UI workflows, and bounded AI tools.</p>
+          </article>
+          <article>
+            <h3>Not claimed</h3>
+            <p>Live Granite data, validated failure prediction, production control, or safety authority.</p>
+          </article>
+        </div>
+      </section>
+      <section className="boundary-summary" aria-labelledby="boundary-summary-title">
+        <div>
+          <h2 id="boundary-summary-title">What this public replay contains</h2>
+          <p>
+            The interface is connected to a deployed application. The observations are synthetic so
+            the portfolio can demonstrate ingestion, auditability, and review without representing
+            a live plant.
+          </p>
+        </div>
+        <dl>
+          <div>
+            <dt>Stored observations</dt>
+            <dd>{briefing.observationCount.toLocaleString()}</dd>
+          </div>
+          <div>
+            <dt>Quality-flagged records</dt>
+            <dd>{briefing.flaggedCount.toLocaleString()}</dd>
+          </div>
+          <div>
+            <dt>Observation time field</dt>
+            <dd>{briefing.replay.observationTimeField}</dd>
+          </div>
+        </dl>
       </section>
       <div className="architecture">
         <article>
@@ -223,6 +293,34 @@ export function HowItWorks() {
             checks without manufacturing certainty.
           </p>
         </article>
+      </div>
+      <div className="two-column">
+        <Panel
+          title="Data boundary"
+          detail="The public site is intentionally constrained."
+        >
+          <ul className="check-list">
+            <li>The replay supplies observations, timestamps, quality flags, and detector outputs.</li>
+            <li>It does not provide a hidden scenario answer, control commands, or a root-cause label.</li>
+            <li>Human review and field verification remain outside this portfolio deployment.</li>
+          </ul>
+        </Panel>
+        <Panel title="Working glossary" detail="Terms used consistently throughout the application.">
+          <dl className="glossary">
+            <div>
+              <dt>Observation</dt>
+              <dd>A time-stamped source record retained as received.</dd>
+            </div>
+            <div>
+              <dt>Finding</dt>
+              <dd>A detector output with rationale and an evaluation window.</dd>
+            </div>
+            <div>
+              <dt>Incident</dt>
+              <dd>An auditable review record that links findings and lifecycle history.</dd>
+            </div>
+          </dl>
+        </Panel>
       </div>
       <Panel
         title="Scope of this public deployment"

@@ -51,3 +51,17 @@ The platform currently creates two bounded, explainable finding classes from pub
 ```
 
 This is demo-safe evidence retrieval, not a production assistant integration. Authentication, authorization, tenant binding, audit logging, rate limiting, and production retention controls remain future hardening work.
+
+## Optional governed evidence chat
+
+`POST /api/v1/assistant/chat` is a server-side wording layer over the same
+bounded read-only tools. It is enabled only when the API receives
+`OPENAI_API_KEY`; otherwise it returns `503` without attempting an upstream
+call. The route uses a server-selected `OPENAI_MODEL`, limits tool rounds and
+tool records in code, disables provider-side response storage, injects site
+scope into tool calls, and returns citations/uncertainty notes. It grants no
+write authority. It currently limits each client to 8 accepted chat requests
+per hour and the process to 2 concurrent chats; those fixed, in-memory values
+reset on restart and require a distributed limiter before broader deployment.
+Its current limits and remaining production-hardening gaps
+are documented in [GOVERNED_AI_ANALYST.md](GOVERNED_AI_ANALYST.md).

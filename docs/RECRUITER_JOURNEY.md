@@ -56,6 +56,24 @@ the vibration sensor and crusher bearing before assigning cause.” Avoid
 unearned claims such as “AI detected a failure,” “real-time intelligence,” or
 “actionable insights.”
 
+### The synthetic-to-real explanation
+
+The first step includes a short “How to read this demo” disclosure. It must
+make a useful distinction rather than merely displaying a synthetic-data
+warning:
+
+> The records are synthetic, but the application path is real: contract-shaped
+> observations are ingested, quality-checked, stored, grouped into findings and
+> incidents, and returned as cited evidence. The generator's hidden scenario
+> labels are kept out of the app and used only to evaluate it.
+
+The corresponding “what changes at a real site” link explains that connectors,
+metric ownership, access control, retention, thresholds, and operational
+validation are site-specific work still to be completed. It does not imply that
+the public replay has those integrations. See
+[VISUAL_ANALYTICS.md](VISUAL_ANALYTICS.md#synthetic-replay-versus-a-real-deployment)
+for the precise boundary.
+
 ## Trust moments
 
 The path contains deliberate moments where the product earns—not requests—
@@ -226,3 +244,14 @@ this?”, “What changed?”, “Why should I trust it?”, “What could contr
 equipment explanation?”, and “What would you inspect next?” A reviewer should
 be able to answer all five from the interface in four minutes. Record defects
 as product gaps—not as reasons to add more dashboard decoration.
+
+## Release-review script
+
+Before sharing the demo, a reviewer who did not build it should complete the
+four-minute path without coaching. Ask them to state: the data boundary, the
+current operating question, the evidence supporting it, the data-quality
+caveat, and the next human check. If any answer depends on a presenter's
+explanation rather than the interface, revise the current step's copy,
+evidence, or navigation. The relevant visual definitions are in
+[VISUAL_ANALYTICS.md](VISUAL_ANALYTICS.md); a future generative analyst must
+meet the governance gates in [GOVERNED_AI_ANALYST.md](GOVERNED_AI_ANALYST.md).

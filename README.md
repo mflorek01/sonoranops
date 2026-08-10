@@ -37,7 +37,7 @@ The platform must never read generator state, scenario schedules, fault labels, 
 
 Prerequisites: Docker Desktop with Compose, Node.js 20+ with npm, and Python 3.12+ for host-side development.
 
-1. Read the [implementation plan](docs/IMPLEMENTATION_PLAN.md), [recruiter journey and authenticity standard](docs/RECRUITER_JOURNEY.md), [architecture](docs/ARCHITECTURE.md), [data contracts](docs/DATA_CONTRACTS.md), and [development guide](docs/DEVELOPMENT.md). The isolated public-server workflow is in the [production deployment runbook](docs/DEPLOYMENT.md).
+1. Read the [implementation plan](docs/IMPLEMENTATION_PLAN.md), [recruiter journey and authenticity standard](docs/RECRUITER_JOURNEY.md), [visual analytics definitions](docs/VISUAL_ANALYTICS.md), [architecture](docs/ARCHITECTURE.md), [data contracts](docs/DATA_CONTRACTS.md), and [development guide](docs/DEVELOPMENT.md). The isolated public-server workflow is in the [production deployment runbook](docs/DEPLOYMENT.md).
 2. Copy `.env.example` to `.env` and replace the development database password if desired.
 3. Start the complete local stack with `npm run demo:up`.
 4. Open `http://localhost:3000`. The API health check is at `http://localhost:8000/api/v1/health`.
@@ -84,7 +84,15 @@ context, while replacing decorative or invented presentation values with
 traceable public data. Its product decisions and acceptance criteria are in
 [RECRUITER_JOURNEY.md](docs/RECRUITER_JOURNEY.md).
 
+The dashboard's observed/derived/unknown boundaries are defined in
+[VISUAL_ANALYTICS.md](docs/VISUAL_ANALYTICS.md). The public evidence explorer
+is deterministic. An optional server-side, read-only evidence-chat route uses
+the same bounded tools when configured with a protected `OPENAI_API_KEY`; the
+remaining production-hardening controls are documented in
+[GOVERNED_AI_ANALYST.md](docs/GOVERNED_AI_ANALYST.md).
+
 Still out of scope for this portfolio release: real customer connectors and
 data, authentication/SSO and enterprise RBAC, production availability
 calculations, managed operational infrastructure, and production assistant
-governance such as audit retention and rate limiting.
+governance such as audit retention, identity binding, budget control, and rate
+limiting.

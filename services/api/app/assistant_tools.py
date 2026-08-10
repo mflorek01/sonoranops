@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 from statistics import fmean
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import Asset, Finding, Incident, IncidentFinding, Observation
@@ -63,7 +63,7 @@ def list_recent_incidents(
 ) -> ToolResult:
     limit = _bounded_limit(limit)
     _optional_identifier(site_id, "site_id")
-    cutoff = datetime.now(UTC) - MAX_RECENT_LOOKBACK
+    cutoff = _replay_recent_cutoff(session, Incident.updated_at, site_id, Incident)
     statement = (
         select(Incident)
         .options(selectinload(Incident.asset), selectinload(Incident.finding_links))
@@ -231,9 +231,15 @@ def query_observations(
     if metric is not None:
         _identifier(metric, "metric")
     limit = _bounded_limit(limit)
-    end = _time(end_at, "end_at") if end_at else datetime.now(UTC)
+    anchor_statement = select(func.max(Observation.observed_at)).where(Observation.asset_id == asset_id)
+    if site_id:
+        anchor_statement = anchor_statement.join(Observation.asset).where(Asset.site_id == site_id)
+    anchor = session.scalar(anchor_statement) or datetime.now(UTC)
+    if anchor.tzinfo is None:
+        anchor = anchor.replace(tzinfo=UTC)
+    end = _time(end_at, "end_at") if end_at else anchor + timedelta(microseconds=1)
     start = _time(start_at, "start_at") if start_at else end - timedelta(hours=24)
-    _window(start, end)
+    _window(start, end, anchor)
     statement = (
         select(Observation)
         .join(Observation.asset)
@@ -269,7 +275,7 @@ def list_recent_findings(
     if asset_id is not None:
         _identifier(asset_id, "asset_id")
     _optional_identifier(site_id, "site_id")
-    cutoff = datetime.now(UTC) - MAX_RECENT_LOOKBACK
+    cutoff = _replay_recent_cutoff(session, Finding.created_at, site_id, Finding)
     statement = select(Finding).order_by(Finding.created_at.desc(), Finding.finding_id)
     statement = statement.where(Finding.created_at >= cutoff)
     if site_id:
@@ -368,6 +374,14 @@ TOOL_REGISTRY: dict[str, Callable[..., ToolResult]] = {
 }
 
 
+def _replay_recent_cutoff(session: Session, column: Any, site_id: str | None, model: Any) -> datetime:
+    statement = select(func.max(column))
+    if site_id:
+        statement = statement.join(model.asset).where(Asset.site_id == site_id)
+    anchor = session.scalar(statement) or datetime.now(UTC)
+    return anchor - MAX_RECENT_LOOKBACK
+
+
 def invoke_tool(session: Session, tool_name: str, arguments: dict[str, Any]) -> ToolResult:
     """Single constrained dispatch point for a future provider adapter."""
     _identifier(tool_name, "tool_name")
@@ -392,17 +406,23 @@ def _period(
     *,
     site_id: str | None = None,
 ) -> list[Observation]:
-    statement = select(Observation).join(Observation.asset).where(
-        Observation.asset_id == asset_id,
-        Observation.metric == metric,
-        Observation.observed_at >= start,
-        Observation.observed_at < end,
+    statement = (
+        select(Observation)
+        .join(Observation.asset)
+        .where(
+            Observation.asset_id == asset_id,
+            Observation.metric == metric,
+            Observation.observed_at >= start,
+            Observation.observed_at < end,
+        )
     )
     if site_id:
         statement = statement.where(Asset.site_id == site_id)
     return list(
         session.scalars(
-            statement.order_by(Observation.observed_at, Observation.observation_id).limit(MAX_RESULTS)
+            statement.order_by(Observation.observed_at, Observation.observation_id).limit(
+                MAX_RESULTS
+            )
         )
     )
 
@@ -486,12 +506,12 @@ def _time(value: str | datetime, name: str) -> datetime:
     return value.astimezone(UTC)
 
 
-def _window(start: datetime, end: datetime) -> None:
+def _window(start: datetime, end: datetime, anchor: datetime | None = None) -> None:
     if end <= start:
         raise ToolInputError("time range must have an end after its start")
     if end - start > MAX_OBSERVATION_WINDOW:
         raise ToolInputError("time range exceeds the seven-day read-only tool bound")
-    if datetime.now(UTC) - start > MAX_RECENT_LOOKBACK:
+    if (anchor or datetime.now(UTC)) - start > MAX_RECENT_LOOKBACK:
         raise ToolInputError("time range is older than the 31-day assistant retrieval bound")
 
 

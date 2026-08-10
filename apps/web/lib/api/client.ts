@@ -1,6 +1,7 @@
 import type {
   AssistantEvidenceResult,
   AssistantToolName,
+  AnalystResponse,
   Finding,
   Incident,
   IncidentDetail,
@@ -102,6 +103,37 @@ type ApiBriefing = {
     flagged_observation_count: number;
     active_incident_count: number;
   }>;
+  visual_analytics?: {
+    metric_series: Array<{
+      asset_id: string;
+      metric: string;
+      unit?: string | null;
+      points: Array<{
+        observed_at: string;
+        value: number;
+        quality_flags?: string[];
+      }>;
+    }>;
+    observation_kind_counts: Array<{ key: string; count: number }>;
+    quality_flag_counts_by_asset: Array<{
+      asset_id: string;
+      flag: string;
+      observation_count: number;
+    }>;
+    incident_counts: Array<{
+      asset_id: string;
+      severity: string;
+      status: string;
+      count: number;
+    }>;
+    process_nodes: Array<{
+      asset_id: string;
+      observation_count: number;
+      latest_observed_at?: string;
+      active_incident_count: number;
+      flagged_observation_count: number;
+    }>;
+  };
 };
 
 const severityFor = (severity: ApiIncident["severity"]): Severity =>
@@ -217,6 +249,41 @@ const toBriefing = (data: ApiBriefing): OperationsBriefing => ({
     flaggedCount: asset.flagged_observation_count,
     activeIncidentCount: asset.active_incident_count,
   })),
+  visualAnalytics: data.visual_analytics
+    ? {
+        metricSeries: data.visual_analytics.metric_series.map((series) => ({
+          assetId: series.asset_id,
+          metric: series.metric,
+          unit: series.unit ?? undefined,
+          points: series.points.map((point) => ({
+            observedAt: point.observed_at,
+            value: point.value,
+            qualityFlags: point.quality_flags ?? [],
+          })),
+        })),
+        observationKindCounts: data.visual_analytics.observation_kind_counts,
+        qualityFlagCountsByAsset: data.visual_analytics.quality_flag_counts_by_asset.map(
+          (item) => ({
+            assetId: item.asset_id,
+            flag: item.flag,
+            count: item.observation_count,
+          }),
+        ),
+        incidentCounts: data.visual_analytics.incident_counts.map((item) => ({
+          assetId: item.asset_id,
+          severity: item.severity,
+          status: item.status,
+          count: item.count,
+        })),
+        processNodes: data.visual_analytics.process_nodes.map((item) => ({
+          assetId: item.asset_id,
+          observationCount: item.observation_count,
+          latestObservedAt: item.latest_observed_at,
+          activeIncidentCount: item.active_incident_count,
+          flaggedObservationCount: item.flagged_observation_count,
+        })),
+      }
+    : undefined,
 });
 
 class HttpOperationsApi implements OperationsApi {
@@ -323,6 +390,49 @@ class HttpOperationsApi implements OperationsApi {
       })),
       uncertaintyNotes: response.uncertainty_notes,
       truncated: response.truncated,
+    };
+  }
+  async chat(message: string): Promise<AnalystResponse> {
+    const response = await this.request<{
+      answer?: string;
+      response?: string;
+      mode?: string;
+      citations?: Array<{
+        label?: string;
+        record_id?: string;
+        record_type?: string;
+        observed_at?: string;
+        object_id?: string;
+        object_type?: string;
+        note?: string;
+        timestamp?: string;
+      }>;
+      uncertainty_notes?: string[];
+      uncertaintyNotes?: string[];
+      tools_used?: string[];
+    }>("/assistant/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        site_id: "sonoran-west",
+        messages: [{ role: "user", content: message }],
+      }),
+    });
+
+    return {
+      answer:
+        response.answer ??
+        response.response ??
+        "The analyst returned no written response.",
+      mode: response.mode,
+      citations: (response.citations ?? []).map((citation, index) => ({
+        label: citation.label ?? `Citation ${index + 1}`,
+        objectId: citation.record_id ?? citation.object_id ?? `citation-${index + 1}`,
+        objectType: citation.record_type ?? citation.object_type ?? "record",
+        note: citation.note,
+        timestamp: citation.observed_at ?? citation.timestamp,
+      })),
+      uncertaintyNotes: response.uncertainty_notes ?? response.uncertaintyNotes ?? [],
+      toolsUsed: response.tools_used ?? [],
     };
   }
 }

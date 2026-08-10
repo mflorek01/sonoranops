@@ -57,6 +57,10 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sonoran}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the production environment}@db:5432/${POSTGRES_DB:-sonoran_ops}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://matthewflorek.com}
       AUTO_CREATE_SCHEMA: "false"
+      # Server-only analyst configuration. Never pass these to web or build args.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5-mini}
+      CHAT_SAFETY_SALT: ${CHAT_SAFETY_SALT:?Set CHAT_SAFETY_SALT to a random production secret}
     depends_on:
       db:
         condition: service_healthy

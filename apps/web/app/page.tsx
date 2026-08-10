@@ -8,6 +8,7 @@ import type {
   OperationsBriefing,
 } from "../lib/api/types";
 import { EvidenceExplorer, HowItWorks } from "./components/explorer";
+import { Analyst } from "./components/analyst";
 import { selectPriorityIncident } from "./components/incident-priority";
 import { Overview } from "./components/overview";
 import { IncidentRecord, Incidents, Quality } from "./components/records";
@@ -19,6 +20,7 @@ type View =
   | "incident"
   | "quality"
   | "explorer"
+  | "analyst"
   | "how";
 
 type NavigationView = Exclude<View, "incident">;
@@ -34,6 +36,7 @@ const nav: Array<{ id: NavigationView; label: string }> = [
   { id: "incidents", label: "Incident records" },
   { id: "quality", label: "Data quality" },
   { id: "explorer", label: "Evidence explorer" },
+  { id: "analyst", label: "AI analyst" },
   { id: "how", label: "How it works" },
 ];
 
@@ -419,7 +422,10 @@ export default function Workspace() {
               {view === "explorer" && (
                 <EvidenceExplorer incidents={incidents} />
               )}
-              {view === "how" && <HowItWorks />}
+              {view === "analyst" && (
+                <Analyst briefing={briefing} incidents={incidents} />
+              )}
+              {view === "how" && <HowItWorks briefing={briefing} incidents={incidents} />}
             </>
           )}
         </div>

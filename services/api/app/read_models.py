@@ -11,14 +11,24 @@ from sqlalchemy.orm import Session
 from app.models import Asset, Incident, Observation
 from app.platform import ACTIVE_INCIDENT_STATES
 from app.schemas import (
+    AnalyticsPointResponse,
     AssetBriefingResponse,
+    AssetFlagCountResponse,
+    CountResponse,
     DataQualityFlagCountResponse,
+    IncidentCountResponse,
+    MetricSeriesResponse,
     OperationsBriefingResponse,
+    ProcessNodeResponse,
     ProductionBaselineResponse,
     ProductionPointResponse,
     ProductionSummaryResponse,
     ReplayBoundaryResponse,
+    VisualAnalyticsResponse,
 )
+
+MAX_METRIC_SERIES = 24
+MAX_POINTS_PER_SERIES = 60
 
 
 def operations_briefing_response(session: Session, site_id: str) -> OperationsBriefingResponse:
@@ -45,6 +55,9 @@ def operations_briefing_response(session: Session, site_id: str) -> OperationsBr
             .join(Incident.asset)
             .where(Asset.site_id == site_id, Incident.status.in_(ACTIVE_INCIDENT_STATES))
         )
+    )
+    site_incidents = list(
+        session.scalars(select(Incident).join(Incident.asset).where(Asset.site_id == site_id))
     )
 
     flagged = [item for item in observations if _is_flagged(item)]
@@ -121,6 +134,9 @@ def operations_briefing_response(session: Session, site_id: str) -> OperationsBr
             for asset in assets
             for asset_observations in [observations_by_asset.get(asset.asset_id, [])]
         ],
+        visual_analytics=_visual_analytics(
+            observations, assets, site_incidents, active_incident_counts
+        ),
     )
 
 
@@ -157,3 +173,74 @@ def _production_point(observation: Observation) -> ProductionPointResponse:
         quality_status=observation.quality_status,
         quality_flags=observation.quality_flags,
     )
+
+
+def _visual_analytics(
+    observations: list[Observation],
+    assets: list[Asset],
+    site_incidents: list[Incident],
+    active_incident_counts: Counter[str],
+) -> VisualAnalyticsResponse:
+    """Bounded chart/table facts directly traceable to stored rows."""
+    series_groups: dict[tuple[str, str, str | None], list[Observation]] = {}
+    for item in observations:
+        if item.metric is not None and item.value is not None:
+            series_groups.setdefault((item.asset_id, item.metric, item.unit), []).append(item)
+    metric_series = [
+        MetricSeriesResponse(
+            asset_id=asset_id,
+            metric=metric,
+            unit=unit,
+            points=[
+                AnalyticsPointResponse(
+                    observed_at=item.observed_at, value=item.value, quality_flags=item.quality_flags
+                )
+                for item in _downsample(items, MAX_POINTS_PER_SERIES)
+            ],
+        )
+        for (asset_id, metric, unit), items in sorted(series_groups.items())[:MAX_METRIC_SERIES]
+    ]
+    kind_counts = Counter(item.kind for item in observations)
+    flags_by_asset = Counter(
+        (item.asset_id, flag) for item in observations for flag in item.quality_flags
+    )
+    incidents = Counter((item.asset_id, item.severity, item.status) for item in site_incidents)
+    # Active counts above deliberately remain scoped to persisted incident rows; grouped status
+    # detail is supplied by the caller's existing incident query contract.
+    nodes = [
+        ProcessNodeResponse(
+            asset_id=asset.asset_id,
+            observation_count=sum(1 for item in observations if item.asset_id == asset.asset_id),
+            latest_observed_at=max(
+                (item.observed_at for item in observations if item.asset_id == asset.asset_id),
+                default=None,
+            ),
+            active_incident_count=active_incident_counts[asset.asset_id],
+            flagged_observation_count=sum(
+                1 for item in observations if item.asset_id == asset.asset_id and _is_flagged(item)
+            ),
+        )
+        for asset in assets
+    ]
+    return VisualAnalyticsResponse(
+        metric_series=metric_series,
+        observation_kind_counts=[
+            CountResponse(key=key, count=value) for key, value in sorted(kind_counts.items())
+        ],
+        quality_flag_counts_by_asset=[
+            AssetFlagCountResponse(asset_id=asset_id, flag=flag, observation_count=count)
+            for (asset_id, flag), count in sorted(flags_by_asset.items())
+        ],
+        incident_counts=[
+            IncidentCountResponse(asset_id=asset_id, severity=severity, status=status, count=count)
+            for (asset_id, severity, status), count in sorted(incidents.items())
+        ],
+        process_nodes=nodes,
+    )
+
+
+def _downsample(items: list[Observation], limit: int) -> list[Observation]:
+    if len(items) <= limit:
+        return items
+    step = (len(items) - 1) / (limit - 1)
+    return [items[round(index * step)] for index in range(limit)]

@@ -90,6 +90,21 @@ def test_incident_evidence_handles_missing_and_cites_linked_platform_records(cli
     assert result.records[0]["findings"]
 
 
+def test_recent_tools_anchor_to_historical_replay_not_wall_clock(client) -> None:
+    """A frozen portfolio replay remains queryable after its wall-clock date passes."""
+    historical = datetime.now(UTC) - timedelta(days=90)
+    _ingest(client, "assistant-historical", historical, value=99.0)
+    with _session(client) as session:
+        incidents = list_recent_incidents(session, site_id="sonoran-west")
+        findings = list_recent_findings(session, site_id="sonoran-west")
+        observations = query_observations(
+            session, asset_id="belt-01", metric="belt_speed_mps", site_id="sonoran-west"
+        )
+    assert incidents.records
+    assert findings.records
+    assert observations.records
+
+
 def test_bounds_and_injection_like_inputs_are_rejected(client) -> None:
     with _session(client) as session:
         with pytest.raises(ToolInputError):

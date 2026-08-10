@@ -1,4 +1,5 @@
 import type { Incident, OperationsBriefing } from "../../lib/api/types";
+import { VisualAnalytics } from "./analytics";
 import { selectPriorityIncident } from "./incident-priority";
 import { Empty, number, Panel, Pill, time } from "./shared";
 
@@ -79,7 +80,7 @@ export function Overview({
   briefing: OperationsBriefing;
   incidents: Incident[];
   onIncident: (id: string) => void;
-  onView: (view: "incidents" | "quality") => void;
+  onView: (view: "incidents" | "quality" | "explorer") => void;
 }) {
   const priority = selectPriorityIncident(incidents);
   const active = incidents.filter(
@@ -89,6 +90,9 @@ export function Overview({
       incident.state !== "dismissed",
   );
   const production = briefing.production;
+  const qualityRate = briefing.observationCount
+    ? (briefing.flaggedCount / briefing.observationCount) * 100
+    : 0;
   const recordSeriesDescription =
     briefing.replay.productionSeriesDefinition.replace(
       /feed-rate/gi,
@@ -136,6 +140,93 @@ export function Overview({
           </div>
         </dl>
       </section>
+      <section className="demo-orientation" aria-labelledby="demo-orientation-title">
+        <div>
+          <h2 id="demo-orientation-title">What this screen demonstrates</h2>
+          <p>
+            A synthetic aggregate replay is processed by deployed ingestion, finding, incident, and
+            evidence-review services. The interface only visualizes records returned by those
+            services.
+          </p>
+        </div>
+        <ol>
+          <li>
+            <strong>Source</strong>
+            <span>Synthetic, time-stamped aggregate observations</span>
+          </li>
+          <li>
+            <strong>Working software</strong>
+            <span>Validated API, persisted records, detectors, and read-only workflows</span>
+          </li>
+          <li>
+            <strong>Evidence, not decoration</strong>
+            <span>Every count and chart is calculated from the returned replay</span>
+          </li>
+          <li>
+            <strong>Decision to investigate</strong>
+            <span>{priority ? priority.title : "No open incident was returned"}</span>
+          </li>
+        </ol>
+      </section>
+      <div className="two-column evidence-overview">
+        <Panel
+          title="Asset evidence map"
+          detail="Issue markers use active incident counts. Asset placement is a review aid, not a surveyed plant layout."
+        >
+          <div className="asset-map" role="list" aria-label="Asset evidence map">
+            {briefing.assets.map((asset) => (
+              <article key={asset.assetId} role="listitem">
+                <div className="asset-map-symbol">Asset</div>
+                <div>
+                  <strong>{asset.assetId}</strong>
+                  <span>
+                    {asset.activeIncidentCount
+                      ? `${asset.activeIncidentCount} active incident${asset.activeIncidentCount === 1 ? "" : "s"}`
+                      : "No active incident"}
+                  </span>
+                  <small>
+                    {asset.observationCount.toLocaleString()} observations · {asset.flaggedCount.toLocaleString()} flagged
+                  </small>
+                </div>
+              </article>
+            ))}
+          </div>
+          <p className="chart-note">
+            Table equivalent: each asset lists its returned observation, flagged-record, and active-incident counts.
+          </p>
+        </Panel>
+        <Panel
+          title="Evidence flow"
+          detail="Counts move from received observations toward records that need human attention."
+        >
+          <ol className="evidence-flow">
+            <li>
+              <strong>{briefing.observationCount.toLocaleString()}</strong>
+              <span>observations received</span>
+            </li>
+            <li>
+              <strong>{briefing.flaggedCount.toLocaleString()}</strong>
+              <span>quality-flagged records</span>
+            </li>
+            <li>
+              <strong>{active.length}</strong>
+              <span>open incident records</span>
+            </li>
+          </ol>
+          <div className="flag-distribution" aria-label="Quality flag distribution">
+            {briefing.quality.flagCounts.map((item) => (
+              <div key={item.flag}>
+                <span>{item.flag.replace(/[-_]/g, " ")}</span>
+                <strong>{item.count.toLocaleString()}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="chart-note">
+            {qualityRate.toFixed(1)}% of returned observations carry at least one quality flag. Flags stay visible rather than being converted into a health score.
+          </p>
+        </Panel>
+      </div>
+      <VisualAnalytics briefing={briefing} onView={onView} />
       <div className="two-column">
         <Panel title="Recorded throughput" detail={recordSeriesDescription}>
           <div className="chart-summary">
@@ -201,6 +292,38 @@ export function Overview({
           </ol>
         </Panel>
       </div>
+      <Panel
+        title="Replay coverage by asset"
+        detail="Observation and quality counts are calculated from the returned replay—not estimated health scores."
+      >
+        <div className="asset-coverage">
+          {briefing.assets.map((asset) => {
+            const flaggedShare = asset.observationCount
+              ? (asset.flaggedCount / asset.observationCount) * 100
+              : 0;
+            return (
+              <article key={asset.assetId}>
+                <header>
+                  <strong>{asset.assetId}</strong>
+                  <span>{asset.observationCount.toLocaleString()} records</span>
+                </header>
+                <div
+                  className="quality-bar"
+                  role="img"
+                  aria-label={`${asset.flaggedCount.toLocaleString()} of ${asset.observationCount.toLocaleString()} records have a quality flag`}
+                >
+                  <span style={{ width: `${Math.min(flaggedShare, 100)}%` }} />
+                </div>
+                <footer>
+                  <span>{asset.flaggedCount.toLocaleString()} flagged</span>
+                  <span>{asset.activeIncidentCount} active incidents</span>
+                  <span>Latest {time(asset.latestObservedAt)}</span>
+                </footer>
+              </article>
+            );
+          })}
+        </div>
+      </Panel>
       <Panel
         title="Open incident records"
         detail={`${active.length} records have not been resolved or dismissed.`}

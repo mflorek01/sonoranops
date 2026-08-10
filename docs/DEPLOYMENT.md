@@ -41,9 +41,13 @@ handle @sonoranReadApi {
 
 @sonoranAssistantApi {
     method POST
-    path /portfolio/sonoran-ops/api/v1/assistant/tools/*
+    path /portfolio/sonoran-ops/api/v1/assistant/tools/* /portfolio/sonoran-ops/api/v1/assistant/chat
 }
 handle @sonoranAssistantApi {
+    # The deterministic tool request is a small structured JSON object.
+    request_body {
+        max_size 64KB
+    }
     uri strip_prefix /portfolio/sonoran-ops
     reverse_proxy sonoran-api:8000
 }
@@ -60,9 +64,25 @@ handle @sonoranWeb {
 ```
 
 Validate the complete Caddy configuration before reload. This policy exposes only the listed GET
-read models and the deterministic read-only assistant tool POST. It returns `405` for ingestion,
-incident transitions, unknown API paths, and all other API methods. Run seeding on the private
-Compose network. The assistant path still needs request-size and rate limits.
+read models, the deterministic read-only assistant-tool POST, and the bounded
+`/assistant/chat` POST. It returns `405` for ingestion, incident transitions,
+unknown API paths, and all other API methods. Run seeding on the private
+Compose network. The assistant request body is capped at 64 KB at the edge;
+API-level input limits remain required as a second boundary. The chat route
+returns `503` until the API has a server-only `OPENAI_API_KEY`; it must never
+fall back to a browser key or another write-capable endpoint.
+
+Stock Caddy has no built-in rate-limiting directive. Do not add an uninstalled
+plugin directive to the live configuration. The API currently enforces a fixed
+limit of **8 accepted chat requests per hour per client**, **2 concurrent chat
+requests per API process**, and a **30 accepted-chat global daily cap per API
+process**, returning `429` when any limit is reached. These fixed values are
+not environment overrides; the process-local, in-memory windows reset on API
+restart. Before broader exposure, add a shared API/gateway limiter with
+`Retry-After`, verify trusted proxy/client identity handling, concurrency,
+request-body rejection, upstream timeout, and a separate daily spend circuit.
+The current deterministic tool route should also receive an API-level request
+limit before it is promoted beyond the portfolio audience.
 
 ## Environment and validation
 
@@ -74,10 +94,51 @@ Render the configuration before building:
 
 ```bash
 docker compose --env-file /secure/path/sonoran-production.env \
-  -f compose.production.yaml config
+  -f compose.production.yaml config --quiet
 ```
 
 The password expansion is fail-closed, so validation must fail if `POSTGRES_PASSWORD` is absent.
+Use `--quiet`: a rendered Compose configuration can contain resolved secret
+values and must not be copied into a terminal transcript, ticket, or chat.
+
+### Required production environment names
+
+The protected deployment environment file currently requires the following
+values. `NEXT_PUBLIC_*` values are intentionally embedded in the browser build;
+never place a secret in one.
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `POSTGRES_DB` | Yes | Database name. |
+| `POSTGRES_USER` | Yes | Database role. |
+| `POSTGRES_PASSWORD` | Yes | Database secret; use a long URL-safe value and keep the file mode `600`. |
+| `SONORAN_WEB_PORT` | Yes | Loopback-only host port for the web health check. |
+| `SONORAN_API_PORT` | Yes | Loopback-only host port for the API health check. |
+| `NEXT_PUBLIC_BASE_PATH` | Yes | Public portfolio mount path: `/portfolio/sonoran-ops`. |
+| `NEXT_PUBLIC_API_BASE_URL` | Yes | Browser API prefix: `/portfolio/sonoran-ops`. |
+| `NEXT_PUBLIC_READ_ONLY_MODE` | Yes | Public lifecycle-control gate; must be `true`. |
+| `CORS_ORIGINS` | Yes | Public browser origin: `https://matthewflorek.com`. |
+| `DEMO_SEED` | Seed job only | Deterministic synthetic replay seed. |
+| `DEMO_MINUTES` | Seed job only | Simulated duration. |
+| `DEMO_WALLCLOCK_SPAN_MINUTES` | Seed job only | Wall-clock compression span for the replay. |
+| `OPENAI_API_KEY` | Evidence chat only | Server-only key used by the API service for `/assistant/chat`; omit it to keep chat disabled. |
+| `OPENAI_MODEL` | Evidence chat only | Model identifier passed only by the API service; set explicitly to make a release reproducible. |
+| `CHAT_SAFETY_SALT` | Yes | A unique random, server-only salt for the provider safety identifier. Production Compose fails closed when it is absent. |
+
+The API now consumes `OPENAI_API_KEY` only for the bounded evidence-chat route.
+For this deployment, the authorized server operator should reuse the existing
+host secret by securely adding the variable name/value to Sonoran's protected,
+root-owned deployment environment file without printing, copying into the
+repository, or placing it in a build argument. The value must never appear in
+`NEXT_PUBLIC_*`, Compose output, logs, screenshots, or a committed file. See
+[GOVERNED_AI_ANALYST.md](GOVERNED_AI_ANALYST.md) for the control boundary.
+
+Generate `CHAT_SAFETY_SALT` with a cryptographically secure generator directly
+into the root-owned deployment environment file (for example, a 32-byte random
+value encoded as text). Do not echo the generated value, paste it into shell
+history, include it in a command line, or copy it into the repository. It is a
+separate secret from `OPENAI_API_KEY`; rotate either by securely replacing the
+protected value and recreating the API service.
 
 ## Build, migrate, and start
 

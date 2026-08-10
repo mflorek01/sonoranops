@@ -16,7 +16,7 @@ flowchart LR
   A --> C["Incident lifecycle"]
   D --> U["Next.js operator UI"]
   C --> U
-  D --> R["Grounded read-only assistant (later)"]
+  D --> R["Deterministic evidence tools"]
   T --> E["Evaluation harness only"]
 ```
 
@@ -57,9 +57,20 @@ Detection output is an explainable candidate finding, not a hidden-label predict
 
 Candidate findings are deduplicated into incidents. Incidents are durable operational records with a lifecycle: `open → acknowledged → investigating → mitigated → resolved`, with `dismissed` available from active states when documented. Every state change is auditable, includes actor/time/reason, and never overwrites original evidence.
 
-### Assistant (future phase)
+### Evidence tools and governed AI analyst
 
-The assistant is read-only. It may retrieve platform-visible observations, findings, incidents, and curated documentation through API-owned tools. It must cite the evidence used, disclose uncertainty/data gaps, and cannot execute actions, alter records, access raw simulator state, or infer facts from evaluation truth.
+The deployed public demo provides deterministic, read-only evidence tools over
+platform-visible observations, findings, and incidents. They call no LLM,
+execute no raw SQL, make no state mutation, and return citations plus
+uncertainty notes.
+
+An optional LLM-backed analyst is a later, separately governed capability. It
+must sit behind API-owned allowlisted tools, evidence/citation validation,
+identity and site scope, input/output/cost limits, audit retention, and a
+human-controlled fallback. It cannot execute actions, alter records, access
+raw simulator state, browse, or infer facts from evaluation truth. See
+[GOVERNED_AI_ANALYST.md](GOVERNED_AI_ANALYST.md) for the required architecture
+and credential boundary.
 
 ## API contract outline
 
@@ -69,6 +80,7 @@ Endpoints are illustrative public shapes; the backend owner will formalize OpenA
 | --- | --- | --- |
 | `POST /api/v1/ingestion/observations` | Validate and idempotently accept an observation batch | Simulator/source adapters |
 | `GET /api/v1/assets` | Browse platform-known sites, lines, and equipment | Web |
+| `GET /api/v1/operations/briefing` | Stored-observation replay, production-series, quality, and asset-context read model | Web |
 | `GET /api/v1/observations` | Filter observed time-series and records | Web, assistant tools |
 | `GET /api/v1/findings` | Read explainable detection/data-quality findings | Web, assistant tools |
 | `GET /api/v1/incidents` | List/filter incidents | Web, assistant tools |
@@ -86,3 +98,6 @@ Mutating endpoints require an `Idempotency-Key` header. Pagination, filtering, s
 - Treat source-provided identifiers as untrusted; use server-generated record IDs plus source/idempotency keys.
 - Version contracts additively. Breaking changes require a new major API path or explicitly supported migration window.
 - Keep synthetic fixtures clearly labeled and outside production deployment images.
+- Define every public visual against a stored field or documented calculation;
+  unavailable operational values stay unavailable. See
+  [VISUAL_ANALYTICS.md](VISUAL_ANALYTICS.md).

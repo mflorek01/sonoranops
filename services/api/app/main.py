@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import datetime
+from hashlib import sha256
 from typing import Annotated
 from uuid import uuid4
 
@@ -12,7 +13,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import and_, or_, select, text
 from sqlalchemy.orm import Session, selectinload
 
+from app.assistant_chat import governed_chat
 from app.assistant_tools import ToolInputError, invoke_tool
+from app.chat_limiter import ChatLimiter
 from app.config import Settings
 from app.database import build_engine, build_session_factory, create_schema, session_dependency
 from app.models import Asset, Finding, Incident, IncidentFinding, Observation
@@ -34,6 +37,8 @@ from app.platform import (
 )
 from app.read_models import linked_observation_ids, operations_briefing_response
 from app.schemas import (
+    AssistantChatRequest,
+    AssistantChatResponse,
     AssistantToolRequest,
     AssistantToolResponse,
     ErrorResponse,
@@ -75,6 +80,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="Sonoran Operations Intelligence API", version="0.1.0", lifespan=lifespan)
     app.state.engine = engine
     app.state.settings = app_settings
+    app.state.chat_limiter = ChatLimiter()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(app_settings.cors_origins),
@@ -142,6 +148,48 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             site_id=request.site_id,
             **result.as_dict(),
         )
+
+    @app.post(
+        "/api/v1/assistant/chat",
+        response_model=AssistantChatResponse,
+        responses={503: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+    )
+    def assistant_chat(
+        request: AssistantChatRequest, raw_request: Request, session: Session = Depends(get_session)
+    ) -> AssistantChatResponse:
+        """LLM wording over bounded, cited read-only evidence tools; no operational authority."""
+        if not app_settings.openai_api_key:
+            raise HTTPException(
+                status_code=503, detail="Evidence chat is not configured for this deployment."
+            )
+        raw_client = raw_request.headers.get(
+            "X-Forwarded-For", raw_request.client.host if raw_request.client else "unknown"
+        ).split(",")[0].strip()
+        safety_identifier = sha256(
+            f"{app_settings.chat_safety_salt}:{raw_client}".encode()
+        ).hexdigest()
+        if app.state.chat_limiter.acquire(raw_client) is None:
+            raise HTTPException(
+                status_code=429, detail="Chat is temporarily rate limited. Please try later."
+            )
+        try:
+            from openai import OpenAI
+
+            result = governed_chat(
+                OpenAI(api_key=app_settings.openai_api_key),
+                app_settings.openai_model,
+                session,
+                request.site_id,
+                request.messages[-1].content,
+                safety_identifier,
+            )
+        except Exception as error:
+            raise HTTPException(
+                status_code=503, detail="Evidence chat is temporarily unavailable."
+            ) from error
+        finally:
+            app.state.chat_limiter.release()
+        return AssistantChatResponse(mode="governed_evidence_chat", **result)
 
     @app.get("/api/v1/health")
     def health(session: Session = Depends(get_session)) -> dict[str, str]:

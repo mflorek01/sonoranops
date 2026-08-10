@@ -236,6 +236,53 @@ class AssetBriefingResponse(ContractModel):
     latest_observed_at: datetime | None
 
 
+class AnalyticsPointResponse(ContractModel):
+    observed_at: datetime
+    value: float
+    quality_flags: list[str]
+
+
+class MetricSeriesResponse(ContractModel):
+    asset_id: str
+    metric: str
+    unit: str | None
+    points: list[AnalyticsPointResponse]
+
+
+class CountResponse(ContractModel):
+    key: str
+    count: int
+
+
+class AssetFlagCountResponse(ContractModel):
+    asset_id: str
+    flag: str
+    observation_count: int
+
+
+class IncidentCountResponse(ContractModel):
+    asset_id: str
+    severity: str
+    status: str
+    count: int
+
+
+class ProcessNodeResponse(ContractModel):
+    asset_id: str
+    observation_count: int
+    latest_observed_at: datetime | None
+    active_incident_count: int
+    flagged_observation_count: int
+
+
+class VisualAnalyticsResponse(ContractModel):
+    metric_series: list[MetricSeriesResponse]
+    observation_kind_counts: list[CountResponse]
+    quality_flag_counts_by_asset: list[AssetFlagCountResponse]
+    incident_counts: list[IncidentCountResponse]
+    process_nodes: list[ProcessNodeResponse]
+
+
 class OperationsBriefingResponse(ContractModel):
     """A transparent, database-derived read model for the public recruiter demo."""
 
@@ -248,6 +295,25 @@ class OperationsBriefingResponse(ContractModel):
     production: ProductionSummaryResponse
     data_quality_flag_counts: list[DataQualityFlagCountResponse]
     assets: list[AssetBriefingResponse]
+    visual_analytics: VisualAnalyticsResponse
+
+
+class AssistantChatMessage(ContractModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=1200)
+
+
+class AssistantChatRequest(ContractModel):
+    site_id: str = Field(min_length=1, max_length=128)
+    messages: list[AssistantChatMessage] = Field(min_length=1, max_length=8)
+
+
+class AssistantChatResponse(ContractModel):
+    mode: Literal["governed_evidence_chat"]
+    answer: str
+    citations: list[AssistantCitationResponse]
+    uncertainty_notes: list[str]
+    tools_used: list[str]
 
 
 class IncidentTransitionRequest(ContractModel):

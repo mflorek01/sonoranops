@@ -10,6 +10,17 @@ import type {
 const delay = <T>(value: T) =>
   new Promise<T>((resolve) => setTimeout(() => resolve(value), 180));
 const now = "2026-08-08T17:49:00Z";
+const metricPoints = (
+  values: number[],
+  unit: string,
+  flaggedIndexes: number[] = [],
+) =>
+  values.map((value, index) => ({
+    observedAt: `2026-08-08T${String(15 + Math.floor((index * 5 + 4) / 60)).padStart(2, "0")}:${String((index * 5 + 4) % 60).padStart(2, "0")}:00Z`,
+    value,
+    unit,
+    qualityFlags: flaggedIndexes.includes(index) ? ["outside_expected_range"] : [],
+  }));
 let incidents: IncidentDetail[] = [
   {
     id: "inc-2048",
@@ -149,6 +160,54 @@ const briefing: OperationsBriefing = {
       activeIncidentCount: 0,
     },
   ],
+  visualAnalytics: {
+    metricSeries: [
+      {
+        assetId: "primary-crusher-01",
+        metric: "axial_vibration",
+        unit: "mm/s",
+        points: metricPoints([7.1, 7.3, 7.2, 8.4, 9.1, 10.8, 12.1, 12.8], "mm/s", [5, 6, 7]),
+      },
+      {
+        assetId: "primary-crusher-01",
+        metric: "motor_current",
+        unit: "A",
+        points: metricPoints([182, 188, 191, 194, 201, 208, 213, 216], "A"),
+      },
+      {
+        assetId: "conveyor-17",
+        metric: "belt_speed",
+        unit: "m/s",
+        points: metricPoints([3.2, 3.1, 3.0, 2.7, 2.8, 3.0, 3.2, 3.1], "m/s", [3]),
+      },
+      {
+        assetId: "wash-plant-02",
+        metric: "water_flow",
+        unit: "L/min",
+        points: metricPoints([410, 414, 412, 418, 421, 416, 419, 423], "L/min"),
+      },
+    ],
+    observationKindCounts: [
+      { key: "condition_record", count: 550 },
+      { key: "production_record", count: 530 },
+      { key: "quality_record", count: 444 },
+    ],
+    qualityFlagCountsByAsset: [
+      { assetId: "primary-crusher-01", flag: "outside_expected_range", count: 19 },
+      { assetId: "primary-crusher-01", flag: "late_arrival", count: 11 },
+      { assetId: "conveyor-17", flag: "late_arrival", count: 22 },
+      { assetId: "wash-plant-02", flag: "missing_value", count: 9 },
+    ],
+    incidentCounts: [
+      { assetId: "primary-crusher-01", severity: "critical", status: "investigating", count: 1 },
+      { assetId: "conveyor-17", severity: "high", status: "acknowledged", count: 1 },
+    ],
+    processNodes: [
+      { assetId: "primary-crusher-01", observationCount: 510, latestObservedAt: now, activeIncidentCount: 1, flaggedObservationCount: 30 },
+      { assetId: "conveyor-17", observationCount: 503, latestObservedAt: now, activeIncidentCount: 1, flaggedObservationCount: 22 },
+      { assetId: "wash-plant-02", observationCount: 511, latestObservedAt: now, activeIncidentCount: 0, flaggedObservationCount: 9 },
+    ],
+  },
 };
 
 export const demoApi: OperationsApi = {
@@ -230,5 +289,10 @@ export const demoApi: OperationsApi = {
       ],
       truncated: false,
     });
+  },
+  chat: async () => {
+    throw new Error(
+      "The AI analyst is available in the deployed demonstration when its secured service is enabled.",
+    );
   },
 };

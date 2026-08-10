@@ -134,6 +134,13 @@ def test_operations_briefing_does_not_substitute_unstored_operating_claims(clien
         },
         "data_quality_flag_counts": [],
         "assets": [],
+        "visual_analytics": {
+            "metric_series": [],
+            "observation_kind_counts": [],
+            "quality_flag_counts_by_asset": [],
+            "incident_counts": [],
+            "process_nodes": [],
+        },
     }
 
 

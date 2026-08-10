@@ -91,6 +91,37 @@ export interface OperationsBriefing {
     flaggedCount: number;
     activeIncidentCount: number;
   }>;
+  visualAnalytics?: {
+    metricSeries: Array<{
+      assetId: string;
+      metric: string;
+      unit?: string;
+      points: Array<{
+        observedAt: string;
+        value: number;
+        qualityFlags: string[];
+      }>;
+    }>;
+    observationKindCounts: Array<{ key: string; count: number }>;
+    qualityFlagCountsByAsset: Array<{
+      assetId: string;
+      flag: string;
+      count: number;
+    }>;
+    incidentCounts: Array<{
+      assetId: string;
+      severity: string;
+      status: string;
+      count: number;
+    }>;
+    processNodes: Array<{
+      assetId: string;
+      observationCount: number;
+      latestObservedAt?: string;
+      activeIncidentCount: number;
+      flaggedObservationCount: number;
+    }>;
+  };
 }
 
 export interface TransitionInput {
@@ -123,6 +154,22 @@ export interface AssistantEvidenceResult {
   truncated: boolean;
 }
 
+export interface AnalystCitation {
+  label: string;
+  objectId: string;
+  objectType: string;
+  note?: string;
+  timestamp?: string;
+}
+
+export interface AnalystResponse {
+  answer: string;
+  mode?: string;
+  citations: AnalystCitation[];
+  uncertaintyNotes: string[];
+  toolsUsed: string[];
+}
+
 export interface OperationsApi {
   getBriefing(): Promise<OperationsBriefing>;
   listIncidents(): Promise<Incident[]>;
@@ -135,4 +182,5 @@ export interface OperationsApi {
     toolName: AssistantToolName,
     arguments_: Record<string, unknown>,
   ): Promise<AssistantEvidenceResult>;
+  chat(message: string): Promise<AnalystResponse>;
 }

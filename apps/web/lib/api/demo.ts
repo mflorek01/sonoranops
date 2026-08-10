@@ -207,6 +207,12 @@ const briefing: OperationsBriefing = {
       { assetId: "conveyor-17", observationCount: 503, latestObservedAt: now, activeIncidentCount: 1, flaggedObservationCount: 22 },
       { assetId: "wash-plant-02", observationCount: 511, latestObservedAt: now, activeIncidentCount: 0, flaggedObservationCount: 9 },
     ],
+    sensorStates: [
+      { assetId: "primary-crusher-01", metric: "vibration_mm_s", unit: "mm/s", latestValue: 12.8, latestObservedAt: now, latestQualityFlags: [], flaggedObservationCount: 0, observationCount: 8, linkedActiveIncidentCount: 1, linkedActiveIncidentHighestSeverity: "critical", linkedFindingCount: 1, state: "critical", reason: "Linked evidence supports an active critical incident." },
+      { assetId: "primary-crusher-01", metric: "motor_current_amps", unit: "A", latestValue: 216, latestObservedAt: now, latestQualityFlags: [], flaggedObservationCount: 0, observationCount: 8, linkedActiveIncidentCount: 0, linkedFindingCount: 0, state: "no_issue", reason: "No linked active incident, finding evidence, or quality flag was stored for this series." },
+      { assetId: "conveyor-17", metric: "belt_speed_mps", unit: "m/s", latestValue: 3.1, latestObservedAt: now, latestQualityFlags: [], flaggedObservationCount: 1, observationCount: 8, linkedActiveIncidentCount: 0, linkedFindingCount: 1, state: "attention", reason: "Linked finding evidence requires review in the incident record." },
+      { assetId: "wash-plant-02", metric: "water_flow", unit: "L/min", latestValue: 423, latestObservedAt: now, latestQualityFlags: ["missing_value"], flaggedObservationCount: 9, observationCount: 8, linkedActiveIncidentCount: 0, linkedFindingCount: 0, state: "data_quality", reason: "Stored quality flags are present on this sensor series." },
+    ],
   },
 };
 

@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+# ruff: noqa: E501, E702
 from datetime import UTC, datetime, timedelta
+
+from sqlalchemy.orm import Session
+
+from app.models import Asset, Finding, Incident, IncidentFinding, Observation
 
 
 def _production_observation(
@@ -140,8 +145,67 @@ def test_operations_briefing_does_not_substitute_unstored_operating_claims(clien
             "quality_flag_counts_by_asset": [],
             "incident_counts": [],
             "process_nodes": [],
+            "sensor_states": [],
         },
     }
+
+
+def test_sensor_states_are_evidence_scoped_and_do_not_claim_safety(client) -> None:
+    response = client.get("/api/v1/operations/briefing", params={"site_id": "empty-site"})
+    states = response.json()["visual_analytics"]["sensor_states"]
+    assert states == []
+    rendered = str(response.json()).lower()
+    assert "healthy" not in rendered and "safe" not in rendered
+
+
+def test_sensor_states_include_no_data_for_persisted_asset(client) -> None:
+    with Session(client.app.state.engine) as session:
+        session.add(Asset(asset_id="empty-sensor", site_id="sensor-site"))
+        session.commit()
+    response = client.get("/api/v1/operations/briefing", params={"site_id": "sensor-site"})
+    states = response.json()["visual_analytics"]["sensor_states"]
+    assert states == [
+        {
+            "asset_id": "empty-sensor", "metric": "no_metric_observed", "unit": None,
+            "latest_value": None, "latest_observed_at": None, "latest_quality_flags": [],
+            "flagged_observation_count": 0, "observation_count": 0,
+            "linked_active_incident_count": 0, "linked_active_incident_highest_severity": None,
+            "linked_finding_count": 0, "state": "no_data",
+            "reason": "No stored metric observation is available for this asset.",
+        }
+    ]
+
+
+def test_sensor_state_precedence_and_evidence_scoping(client) -> None:
+    at = datetime(2020, 1, 1, tzinfo=UTC)
+    with Session(client.app.state.engine) as session:
+        assets = [Asset(asset_id=name, site_id="sensor-site") for name in ("critical", "attention", "quality", "clear", "empty")]
+        assets.append(Asset(asset_id="other", site_id="other-site"))
+        session.add_all(assets)
+        rows = []
+        for name in ("critical", "attention", "quality", "clear"):
+            rows.append(Observation(observation_id=f"obs-{name}", idempotency_key=f"key-{name}", source_id="test", source_type="telemetry", received_via="api", asset_id=name, kind="telemetry", metric="signal", value=1.0, unit="u", record_type=None, attributes={}, observed_at=at, source_recorded_at=at, ingested_at=at, quality_status="accepted", quality_flags=[]))
+        rows.append(Observation(observation_id="obs-other", idempotency_key="key-other", source_id="test", source_type="telemetry", received_via="api", asset_id="other", kind="telemetry", metric="signal", value=1.0, unit="u", record_type=None, attributes={}, observed_at=at, source_recorded_at=at, ingested_at=at, quality_status="accepted", quality_flags=[]))
+        session.add_all(rows)
+        findings = [
+            Finding(finding_id="f-critical", finding_type="anomaly", status="active", asset_id="critical", detector_name="d", detector_version="1", window_start_at=at, window_end_at=at, severity="critical", rationale="r", evidence=[{"observation_id": "obs-critical"}], data_quality_status="good", data_quality_flags=[]),
+            Finding(finding_id="f-attention", finding_type="anomaly", status="active", asset_id="attention", detector_name="d", detector_version="1", window_start_at=at, window_end_at=at, severity="warning", rationale="r", evidence=[{"observation_id": "obs-attention"}], data_quality_status="good", data_quality_flags=[]),
+            Finding(finding_id="f-quality", finding_type="data_quality", status="active", asset_id="quality", detector_name="d", detector_version="1", window_start_at=at, window_end_at=at, severity="warning", rationale="r", evidence=[{"observation_id": "obs-quality"}], data_quality_status="review", data_quality_flags=["late_arrival"]),
+            Finding(finding_id="f-other", finding_type="anomaly", status="active", asset_id="other", detector_name="d", detector_version="1", window_start_at=at, window_end_at=at, severity="critical", rationale="r", evidence=[{"observation_id": "obs-critical"}], data_quality_status="good", data_quality_flags=[]),
+        ]
+        session.add_all(findings)
+        incident = Incident(incident_id="i-critical", asset_id="critical", status="open", title="i", severity="critical", opened_at=at, updated_at=at)
+        session.add(incident); session.flush()
+        session.add(IncidentFinding(incident_id="i-critical", finding_id="f-critical", linked_at=at))
+        session.commit()
+    states = client.get("/api/v1/operations/briefing", params={"site_id": "sensor-site"}).json()["visual_analytics"]["sensor_states"]
+    by_asset = {item["asset_id"]: item for item in states}
+    assert by_asset["critical"]["state"] == "critical" and by_asset["critical"]["linked_active_incident_count"] == 1
+    assert by_asset["attention"]["state"] == "attention"
+    assert by_asset["quality"]["state"] == "data_quality"
+    assert by_asset["clear"]["state"] == "no_issue"
+    assert by_asset["empty"]["state"] == "no_data"
+    assert "other" not in by_asset
 
 
 def test_private_truth_fields_are_rejected_and_never_reappear_in_briefing(client) -> None:

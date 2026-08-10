@@ -86,3 +86,17 @@ def test_incomplete_provider_response_adds_uncertainty_note(client) -> None:
             "test-id",
         )
     assert any("incomplete" in note.lower() for note in result["uncertainty_notes"])
+
+
+def test_chat_forwards_bounded_conversation_history(client) -> None:
+    fake = FakeResponses()
+    history = [
+        {"role": "user", "content": "Earlier question"},
+        {"role": "assistant", "content": "Earlier answer"},
+        {"role": "user", "content": "Current question"},
+    ]
+    with Session(client.app.state.engine) as session:
+        governed_chat(
+            SimpleNamespace(responses=fake), "test-model", session, "empty-site", history, "test-id"
+        )
+    assert fake.requests[0]["input"] == history

@@ -33,9 +33,9 @@ interface Route {
 
 const nav: Array<{ id: NavigationView; label: string }> = [
   { id: "overview", label: "Operations" },
-  { id: "incidents", label: "Incident records" },
+  { id: "incidents", label: "Issues" },
   { id: "quality", label: "Data quality" },
-  { id: "explorer", label: "Evidence explorer" },
+  { id: "explorer", label: "Record lookup" },
   { id: "analyst", label: "AI analyst" },
   { id: "how", label: "How it works" },
 ];
@@ -44,12 +44,12 @@ const guide: Array<{ view: View; title: string; text: string }> = [
   {
     view: "overview",
     title: "Start with the operating story",
-    text: "See the replay window, the returned production record series, and the priority record.",
+    text: "See this simulated shift, the production trend, and the first issue to review.",
   },
   {
     view: "incident",
-    title: "Review an incident record",
-    text: "Open the linked detector rationale, evaluation window, and source observations.",
+    title: "Review an issue",
+    text: "Open the automated check, check period, and source readings behind the issue.",
   },
   {
     view: "quality",
@@ -58,13 +58,13 @@ const guide: Array<{ view: View; title: string; text: string }> = [
   },
   {
     view: "explorer",
-    title: "Inspect the evidence boundary",
-    text: "Run a bounded, cited query without a pretend AI assistant.",
+    title: "Look up a record",
+    text: "Look up returned readings and see the sources behind them.",
   },
   {
     view: "how",
     title: "Understand the system boundary",
-    text: "The app receives synthetic observations, not the scenario's hidden answer.",
+    text: "The app receives simulated readings, not a hidden scenario answer.",
   },
 ];
 
@@ -161,7 +161,7 @@ export default function Workspace() {
       setDataError(
         caught instanceof Error
           ? caught.message
-          : "The deployed API did not return the operating record.",
+          : "The deployed app did not return the current shift.",
       );
     }
   }, []);
@@ -190,7 +190,7 @@ export default function Workspace() {
         setIncidentError(
           caught instanceof Error
             ? caught.message
-            : "The requested incident is unavailable.",
+            : "The requested issue is unavailable.",
         );
       }
     }
@@ -278,7 +278,7 @@ export default function Workspace() {
   };
 
   const displayTitle =
-    nav.find((item) => item.id === view)?.label ?? "Incident record";
+    nav.find((item) => item.id === view)?.label ?? "Issue";
   const noData = !briefing || !incidents;
 
   return (
@@ -310,13 +310,13 @@ export default function Workspace() {
           <a href={githubUrl} target="_blank" rel="noreferrer">
             View the repository
           </a>
-          <span>{apiMode === "demo" ? "Local adapter" : "Deployed API"}</span>
+          <span>{apiMode === "demo" ? "Local sample" : "Deployed application"}</span>
         </div>
       </aside>
       <section className="workspace">
         <header className="topbar">
           <div>
-            <p className="topbar-status">Synthetic aggregate-plant replay</p>
+            <p className="topbar-status">Simulated aggregate-plant shift</p>
             <h1>{displayTitle}</h1>
           </div>
           <button className="refresh" onClick={() => void refresh()}>
@@ -326,8 +326,8 @@ export default function Workspace() {
         <div className="portfolio-banner" role="status">
           <strong>Portfolio demonstration</strong>
           <span>
-            Synthetic aggregate-plant data is feeding a real deployed
-            application. The platform never receives scenario ground truth.
+            Simulated aggregate-plant data is feeding a real deployed
+            application. The platform never receives a hidden scenario answer.
           </span>
           <button className="text-button" onClick={() => navigate("how")}>
             How this works
@@ -335,10 +335,10 @@ export default function Workspace() {
         </div>
         <section className="walkthrough-intro">
           <div>
-            <strong>3-minute recruiter walkthrough</strong>
+            <strong>3-minute walkthrough</strong>
             <span>
-              Follow the operating story, evidence, and system boundary—or
-              explore freely.
+              Follow the top issue from the plant view to its readings, data
+              checks, and next step.
             </span>
           </div>
           <div>
@@ -352,7 +352,7 @@ export default function Workspace() {
           </div>
         </section>
         {guideStep && (
-          <aside className="guide" aria-label="Recruiter walkthrough">
+          <aside className="guide" aria-label="3-minute walkthrough">
             <p>
               Step {guideStep} of {guide.length}
             </p>
@@ -376,7 +376,7 @@ export default function Workspace() {
         <div id="content" className="content">
           {dataError && (
             <ErrorNotice
-              title="Unable to refresh the operating record."
+              title="Unable to refresh the simulated shift."
               detail={dataError}
               action={<button onClick={() => void refresh()}>Try again</button>}
             />
@@ -406,16 +406,16 @@ export default function Workspace() {
                   />
                 ) : incidentError ? (
                   <ErrorNotice
-                    title="Unable to load this incident record."
+                    title="Unable to load this issue."
                     detail={incidentError}
                     action={<button onClick={retryIncident}>Try again</button>}
                   />
                 ) : activeIncidentId ? (
-                  <Loading label="Loading the incident record" />
+                  <Loading label="Loading the issue" />
                 ) : (
-                  <Empty title="No incident record was selected">
-                    Select an open incident from the operations overview or
-                    incident records.
+                  <Empty title="No issue was selected">
+                    Select an open issue from the operations overview or
+                    issues list.
                   </Empty>
                 ))}
               {view === "quality" && <Quality briefing={briefing} />}
@@ -430,8 +430,8 @@ export default function Workspace() {
           )}
         </div>
         <footer>
-          Replay mode: {briefing?.replay.mode ?? "Loading"} · last returned
-          signal {time(briefing?.latestObservedAt)}
+          Simulated shift: {briefing?.replay.mode ?? "Loading"} · latest
+          reading {time(briefing?.latestObservedAt)}
         </footer>
       </section>
     </main>

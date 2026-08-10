@@ -121,6 +121,21 @@ export interface OperationsBriefing {
       activeIncidentCount: number;
       flaggedObservationCount: number;
     }>;
+    sensorStates?: Array<{
+      assetId: string;
+      metric: string;
+      unit?: string;
+      latestValue?: number | null;
+      latestObservedAt?: string;
+      latestQualityFlags: string[];
+      flaggedObservationCount: number;
+      observationCount: number;
+      linkedActiveIncidentCount: number;
+      linkedActiveIncidentHighestSeverity?: string;
+      linkedFindingCount: number;
+      state: "critical" | "attention" | "data_quality" | "no_issue" | "no_data";
+      reason: string;
+    }>;
   };
 }
 
@@ -170,6 +185,11 @@ export interface AnalystResponse {
   toolsUsed: string[];
 }
 
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface OperationsApi {
   getBriefing(): Promise<OperationsBriefing>;
   listIncidents(): Promise<Incident[]>;
@@ -182,5 +202,5 @@ export interface OperationsApi {
     toolName: AssistantToolName,
     arguments_: Record<string, unknown>,
   ): Promise<AssistantEvidenceResult>;
-  chat(message: string): Promise<AnalystResponse>;
+  chat(messages: ChatMessage[]): Promise<AnalystResponse>;
 }

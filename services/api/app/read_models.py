@@ -8,7 +8,7 @@ from statistics import median
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Asset, Incident, Observation
+from app.models import Asset, Finding, Incident, IncidentFinding, Observation
 from app.platform import ACTIVE_INCIDENT_STATES
 from app.schemas import (
     AnalyticsPointResponse,
@@ -24,6 +24,7 @@ from app.schemas import (
     ProductionPointResponse,
     ProductionSummaryResponse,
     ReplayBoundaryResponse,
+    SensorStateResponse,
     VisualAnalyticsResponse,
 )
 
@@ -135,7 +136,7 @@ def operations_briefing_response(session: Session, site_id: str) -> OperationsBr
             for asset_observations in [observations_by_asset.get(asset.asset_id, [])]
         ],
         visual_analytics=_visual_analytics(
-            observations, assets, site_incidents, active_incident_counts
+            session, observations, assets, site_incidents, active_incident_counts
         ),
     )
 
@@ -176,6 +177,7 @@ def _production_point(observation: Observation) -> ProductionPointResponse:
 
 
 def _visual_analytics(
+    session: Session,
     observations: list[Observation],
     assets: list[Asset],
     site_incidents: list[Incident],
@@ -236,7 +238,120 @@ def _visual_analytics(
             for (asset_id, severity, status), count in sorted(incidents.items())
         ],
         process_nodes=nodes,
+        sensor_states=_sensor_states(session, observations, assets),
     )
+
+
+def _sensor_states(
+    session: Session, observations: list[Observation], assets: list[Asset]
+) -> list[SensorStateResponse]:
+    """Derive sensor states solely from stored observations and evidence references."""
+    by_id = {item.observation_id: item for item in observations}
+    findings = (
+        list(
+            session.scalars(
+                select(Finding).join(Finding.asset).where(Asset.site_id == assets[0].site_id)
+            )
+        )
+        if assets
+        else []
+    )
+    finding_metrics: dict[tuple[str, str], list[Finding]] = {}
+    for finding in findings:
+        for evidence in finding.evidence:
+            observation_id = evidence.get("observation_id") if isinstance(evidence, dict) else None
+            observation = by_id.get(observation_id)
+            if observation and observation.metric:
+                finding_metrics.setdefault((observation.asset_id, observation.metric), []).append(
+                    finding
+                )
+    active_links = list(
+        session.scalars(
+            select(IncidentFinding)
+            .join(IncidentFinding.incident)
+            .join(Incident.asset)
+            .where(
+                Asset.site_id == assets[0].site_id,
+                Incident.status.in_(ACTIVE_INCIDENT_STATES),
+            )
+        )
+    ) if assets else []
+    active_finding_ids = {
+        link.finding_id: link.incident for link in active_links if link.incident is not None
+    }
+    groups: dict[tuple[str, str], list[Observation]] = {}
+    for item in observations:
+        if item.metric:
+            groups.setdefault((item.asset_id, item.metric), []).append(item)
+    states: list[SensorStateResponse] = []
+    severity_rank = {"critical": 3, "warning": 2, "info": 1}
+    for (asset_id, metric), rows in sorted(groups.items()):
+        latest = rows[-1]
+        linked_findings = finding_metrics.get((asset_id, metric), [])
+        incidents = {
+            active_finding_ids[item.finding_id].incident_id: active_finding_ids[item.finding_id]
+            for item in linked_findings
+            if item.finding_id in active_finding_ids
+        }
+        incident_rows = list(incidents.values())
+        highest = max(
+            (item.severity for item in incident_rows),
+            key=lambda value: severity_rank.get(value, 0),
+            default=None,
+        )
+        if highest == "critical":
+            state, reason = "critical", "Linked evidence supports an active critical incident."
+        elif any(
+            item.data_quality_flags or "quality" in item.finding_type for item in linked_findings
+        ):
+            state, reason = "data_quality", (
+                "Linked finding evidence identifies stored data-quality issues."
+            )
+        elif incident_rows or linked_findings:
+            state, reason = "attention", (
+                "Linked finding evidence requires review in the incident record."
+            )
+        elif latest.quality_flags or any(_is_flagged(item) for item in rows):
+            state, reason = "data_quality", (
+                "Stored quality flags are present on this sensor series."
+            )
+        else:
+            state, reason = (
+                "no_issue",
+                "No linked active incident, finding evidence, or quality flag was stored "
+                "for this series.",
+            )
+        states.append(
+            SensorStateResponse(
+                asset_id=asset_id, metric=metric, unit=latest.unit, latest_value=latest.value,
+                latest_observed_at=latest.observed_at, latest_quality_flags=latest.quality_flags,
+                flagged_observation_count=sum(_is_flagged(item) for item in rows),
+                observation_count=len(rows), linked_active_incident_count=len(incident_rows),
+                linked_active_incident_highest_severity=highest,
+                linked_finding_count=len(linked_findings), state=state, reason=reason,
+            )
+        )
+    observed_assets = {asset_id for asset_id, _ in groups}
+    for asset in assets:
+        if asset.asset_id not in observed_assets:
+            states.append(
+                SensorStateResponse(
+                    asset_id=asset.asset_id,
+                    metric="no_metric_observed",
+                    unit=None,
+                    latest_value=None,
+                    latest_observed_at=None,
+                    latest_quality_flags=[],
+                    flagged_observation_count=0,
+                    observation_count=0,
+                    linked_active_incident_count=0,
+                    linked_active_incident_highest_severity=None,
+                    linked_finding_count=0,
+                    state="no_data",
+                    reason="No stored metric observation is available for this asset.",
+                )
+            )
+    return states
 
 
 def _downsample(items: list[Observation], limit: int) -> list[Observation]:

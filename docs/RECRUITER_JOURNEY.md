@@ -184,6 +184,154 @@ useful when they clarify what is known. Any chart must use actual public API
 data, name its metric/unit/time window, and provide its values or an equivalent
 text/table alternative.
 
+## Cognitive-load and plain-English implementation brief
+
+This is the implementation brief for the main/frontend owner. It is based on a
+first-time recruiter/operator reading of the current public screens. The
+application already has credible evidence and boundaries; the remaining risk is
+that specialist terms make a visitor work too hard before they understand the
+point of the demo.
+
+### P0: orient a first-time visitor in 20 seconds
+
+Place this compact statement directly below the page title on the default
+Operations screen, ahead of charts, tiles, or a plant diagram:
+
+> **Demo data. Working software.** This is a simulated aggregate-plant replay
+> running through a deployed application. It flags records that need a human
+> check; it does not diagnose equipment or control a plant.
+
+Follow it with one primary action and one quiet link:
+
+- Primary: **Review the top issue**
+- Secondary: **See how the demo works**
+
+Replace “Start walkthrough” with **Take the 3-minute tour**. Replace “Explore
+freely” with **Browse on my own**. The secondary option should not look like a
+failure path.
+
+The top navigation should use these visitor-facing labels, in this order:
+
+| Current label | Replace with | Why |
+| --- | --- | --- |
+| Operations | **Start here** | Gives an unfamiliar visitor an obvious entry point. |
+| Incident records | **Issues to review** | Explains the decision purpose before the data model. |
+| Data quality | **Check the data** | States the action, not an abstract category. |
+| Evidence explorer | **Inspect evidence** | Uses a common verb and matches the next task. |
+| AI analyst | **Ask about the evidence** | Centers the bounded task, not the technology. Keep “AI-assisted” in the disclosure only. |
+| How it works | **About this demo** | Answers the recruiter’s immediate credibility question. |
+
+The product name may remain Sonoran Ops, but replace the small “Operations
+intelligence” subtitle with **An evidence-led operations demo**. “Intelligence”
+is broad and does not tell a recruiter what they can do here.
+
+### P0: terms that require translation
+
+Do not remove precise terms from a technical detail view. Introduce them once
+in plain language, then use the shorter term consistently. Tooltips or a
+“What this means” line should carry the precise definition.
+
+| Current term/copy | Plain-English replacement | Keep the technical meaning in |
+| --- | --- | --- |
+| Synthetic aggregate-plant replay | **Simulated plant data, replayed for this demo** | About this demo: fixed, repeatable data window. |
+| Operating record | **The data reviewed on this screen** | Evidence metadata. |
+| Observation | **A time-stamped source reading** | Glossary: preserved as received. |
+| Finding | **A rule noticed an unusual pattern** | Detail: detector name/version and rule rationale. |
+| Incident | **An issue that needs human review** | Detail: durable review record linking findings/evidence. |
+| Detector output | **What the rule noticed** | Detail: detector/version. |
+| Evaluation window | **Time period the rule checked** | Detail: start/end times. |
+| Linked source observations | **Source readings behind this issue** | Table title/metadata. |
+| Quality flags | **Data warnings** | Detail: exact flag names/reason codes. |
+| Bounded query | **A limited evidence search** | Disclosure: only approved record types/time ranges. |
+| Scenario ground truth / hidden answer | **The simulator’s private answer key** | About-this-demo boundary. |
+| Replay coverage by asset | **Data received for each piece of equipment** | Detail: record count and latest timestamp. |
+| Asset review sequence | **Equipment review order** | Legend: it is not a plant map. |
+| Returned signal series | **Recorded signals over this demo window** | Chart: metric, unit, points, time window. |
+| Incident distribution | **Issues by equipment and status** | Detail: severity/state grouping. |
+
+Avoid phrases such as “returned,” “deployed record,” “platform-visible,”
+“evidence boundary,” and “workflow” in primary copy. They are useful in
+technical documentation but force a recruiter to infer the real-world meaning.
+
+### P0: every record must answer four questions
+
+Each record surface needs a fixed scan pattern. Use sentence-case question
+headings; do not rely on a reader to decode an ID, pill, or raw detector name.
+
+| Record type | What happened? | Where? | Why it matters | What to check next |
+| --- | --- | --- | --- | --- |
+| Source reading | “This reading was recorded.” State metric, value, unit, and time. | Equipment/source name. | State data warning if present; otherwise “No data warning on this reading.” | “Compare it with nearby readings and the equipment state.” |
+| Finding | “A rule saw [metric] [rise/fall/deviation] during [time range].” | Equipment and metric. | “This is a cue to investigate, not a failure diagnosis.” | “Review the cited readings and their data warnings.” |
+| Issue / incident | “This issue groups [n] unusual-pattern findings for review.” | Affected equipment/process area. | State severity as priority for review, not probability; name any contradictory data warning. | “Check the source readings, field condition, and current operating state.” |
+| Data warning | “These [n] records arrived late / had [flag].” | Affected source/equipment/time range. | Explain whether comparison is less reliable or whether the record was retained but excluded. | “Confirm source timing/mapping before using this as operational evidence.” |
+| AI-assisted answer | “Here is a summary of the cited records.” | Name the selected site and evidence range. | “It does not establish root cause or authorize action.” | “Open the cited issue/readings; verify in the field.” |
+
+For an empty state, preserve the same scan pattern. Example: **“No source
+readings are linked to this issue yet. Do not infer a cause from this screen.
+Next: inspect another open issue or the data-warning view.”**
+
+### P1: plant-diagram and state language
+
+The asset/equipment diagram must never be mistaken for a live SCADA display,
+a geographic map, or a health dashboard. Put this legend above the diagram:
+
+> **Equipment review order — not a plant map or live status display.** Each
+> card shows stored demo records, data warnings, and issues that need review.
+
+Use a consistent three-line label per asset:
+
+1. **Equipment:** “Primary crusher” (friendly name first; technical ID only in
+   secondary text).
+2. **What the demo has:** “126 stored readings · latest at 10:42 AM MST.”
+3. **Review state:** “1 issue to review” / “Data warnings on 4 readings” /
+   “No open issue in this demo window.”
+
+Do not use “healthy,” “normal,” “online,” a green dot, “no concern,” or “no
+active incident” as a proxy for condition. “No open issue in this demo window”
+is an accurate absence statement. Use arrows only if they mean an actual
+returned process relationship; otherwise use numbered placement and call it a
+review order. A diagram click should open a short equipment summary with the
+four record questions above, not a generic details panel.
+
+### Guided three-minute sequence
+
+The current five concepts should be presented as four short decisions, with
+the visitor free to leave at every step:
+
+| Time | Screen | Guide copy | One action |
+| --- | --- | --- | --- |
+| 0:00–0:20 | Start here | **“Demo data. Working software.”** Explain the simulated-input/working-app boundary and the one issue to review. | **Review the top issue** |
+| 0:20–1:05 | Issue detail | **“What changed, and why should someone look?”** Show the rule’s plain-language finding, affected equipment, cited readings, and uncertainty. | **See the source readings** |
+| 1:05–1:45 | Check the data | **“Could the data itself explain this?”** Show affected records, warning meaning, and whether comparisons are limited. | **Inspect the evidence** |
+| 1:45–3:00 | Inspect evidence / About this demo | **“Verify the story, then see the boundary.”** Run one cited evidence search; show simulated inputs versus real ingestion/storage/rules/UI and what is not claimed. | **Browse on my own** or **View the repository** |
+
+The AI-assisted answer is optional after step 4, not part of the default proof
+path. A recruiter should first see the evidence without having to trust a
+model-generated summary.
+
+### Acceptance criteria for the frontend implementation
+
+- In a 20-second unmoderated test, a first-time visitor can accurately say:
+  “The data is simulated; the software is real; it is showing an issue for a
+  human to check; I should open the top issue.”
+- In a three-minute test, the visitor can distinguish a source reading, rule
+  finding, issue/incident, and data warning without opening external docs.
+- Every primary screen presents one task-oriented heading, one-sentence plain
+  language summary, one primary next action, and no more than three equally
+  prominent metrics before the task is clear.
+- Every chart and diagram has a title that names its decision purpose, a
+  legend/state statement, source/time/unit context, and a text/table
+  alternative.
+- An issue detail states why it exists, where it applies, the data limitation,
+  and a human next check before detector IDs or timeline metadata.
+- “No issue,” “no data warning,” and “not returned” are described as scope or
+  availability statements—not good health, normal operation, or live status.
+- The AI-assisted screen visibly states its evidence-only/read-only limit,
+  shows citations and uncertainty, and offers a direct path to source records.
+- A visitor can leave the tour, use back/forward, and resume exploration
+  without losing context. All guide actions and diagram interactions are
+  keyboard reachable with visible focus.
+
 ## Prioritized acceptance criteria
 
 ### P0 — required before sharing the public demo

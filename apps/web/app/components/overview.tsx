@@ -1,7 +1,8 @@
 import type { Incident, OperationsBriefing } from "../../lib/api/types";
 import { VisualAnalytics } from "./analytics";
+import { PlantDiagram } from "./plant-diagram";
 import { selectPriorityIncident } from "./incident-priority";
-import { Empty, number, Panel, Pill, time } from "./shared";
+import { assetLabel, Empty, number, Panel, Pill, time } from "./shared";
 
 function ThroughputChart({ briefing }: { briefing: OperationsBriefing }) {
   const { points, baselineValue, unit } = briefing.production;
@@ -9,7 +10,7 @@ function ThroughputChart({ briefing }: { briefing: OperationsBriefing }) {
   if (!points.length) {
     return (
       <Empty title="No production record series was returned">
-        The replay returned run facts, but no chartable observations for this
+        The simulated shift returned run facts, but no chartable readings for this
         window.
       </Empty>
     );
@@ -107,15 +108,15 @@ export function Overview({
       >
         <div>
           <h2 id="operating-story-title">
-            {priority?.title ?? "No open incidents in this replay"}
+            {priority?.title ?? "No open issues in this simulated shift"}
           </h2>
           <p>
             {priority?.summary ??
-              "The platform has no open incident record to review in the current data window."}
+              "No issue needs review in this simulated shift."}
           </p>
           {priority && (
             <button className="primary" onClick={() => onIncident(priority.id)}>
-              Review the evidence
+              Review this issue
             </button>
           )}
         </div>
@@ -127,93 +128,93 @@ export function Overview({
             </dd>
           </div>
           <div>
-            <dt>Replay window</dt>
+            <dt>Simulated shift</dt>
             <dd>
               {number(briefing.observationCount)} <small>records</small>
             </dd>
           </div>
           <div>
-            <dt>Flagged records</dt>
+            <dt>Readings with data warnings</dt>
             <dd>
-              {number(briefing.flaggedCount)} <small>need context</small>
+              {number(briefing.flaggedCount)} <small>need review</small>
             </dd>
           </div>
         </dl>
       </section>
+      <PlantDiagram briefing={briefing} onView={onView} />
       <section className="demo-orientation" aria-labelledby="demo-orientation-title">
         <div>
           <h2 id="demo-orientation-title">What this screen demonstrates</h2>
           <p>
-            A synthetic aggregate replay is processed by deployed ingestion, finding, incident, and
-            evidence-review services. The interface only visualizes records returned by those
-            services.
+            A simulated shift runs through the same working software shown here. The app receives,
+            stores, checks, and displays the readings.
           </p>
         </div>
         <ol>
           <li>
             <strong>Source</strong>
-            <span>Synthetic, time-stamped aggregate observations</span>
+            <span>Simulated, time-stamped aggregate readings</span>
           </li>
           <li>
             <strong>Working software</strong>
-            <span>Validated API, persisted records, detectors, and read-only workflows</span>
+            <span>Data service, stored readings, automated checks, and read-only review</span>
           </li>
           <li>
             <strong>Evidence, not decoration</strong>
-            <span>Every count and chart is calculated from the returned replay</span>
+            <span>Every count and chart is calculated from the returned shift</span>
           </li>
           <li>
             <strong>Decision to investigate</strong>
-            <span>{priority ? priority.title : "No open incident was returned"}</span>
+            <span>{priority ? priority.title : "No open issue was returned"}</span>
           </li>
         </ol>
       </section>
       <div className="two-column evidence-overview">
         <Panel
-          title="Asset evidence map"
-          detail="Issue markers use active incident counts. Asset placement is a review aid, not a surveyed plant layout."
+          title="Equipment summary"
+          detail="Issue markers use open-issue counts. This is a review aid, not a surveyed plant layout."
         >
-          <div className="asset-map" role="list" aria-label="Asset evidence map">
+          <div className="asset-map" role="list" aria-label="Equipment summary">
             {briefing.assets.map((asset) => (
               <article key={asset.assetId} role="listitem">
                 <div className="asset-map-symbol">Asset</div>
                 <div>
-                  <strong>{asset.assetId}</strong>
+                  <strong>{assetLabel(asset.assetId)}</strong>
                   <span>
                     {asset.activeIncidentCount
-                      ? `${asset.activeIncidentCount} active incident${asset.activeIncidentCount === 1 ? "" : "s"}`
-                      : "No active incident"}
+                      ? `${asset.activeIncidentCount} open issue${asset.activeIncidentCount === 1 ? "" : "s"}`
+                      : "No open issue"}
                   </span>
                   <small>
-                    {asset.observationCount.toLocaleString()} observations · {asset.flaggedCount.toLocaleString()} flagged
+                    {asset.observationCount.toLocaleString()} readings; {asset.flaggedCount.toLocaleString()} data warnings
                   </small>
                 </div>
               </article>
             ))}
           </div>
           <p className="chart-note">
-            Table equivalent: each asset lists its returned observation, flagged-record, and active-incident counts.
+            Table equivalent: each asset lists its returned readings, data warnings, and open-issue counts.
           </p>
         </Panel>
         <Panel
-          title="Evidence flow"
-          detail="Counts move from received observations toward records that need human attention."
+          title="What the app checked"
+          detail="The app narrows readings with data warnings into open issues for review."
         >
           <ol className="evidence-flow">
             <li>
               <strong>{briefing.observationCount.toLocaleString()}</strong>
-              <span>observations received</span>
+              <span>readings received</span>
             </li>
             <li>
               <strong>{briefing.flaggedCount.toLocaleString()}</strong>
-              <span>quality-flagged records</span>
+              <span>readings with data warnings</span>
             </li>
             <li>
               <strong>{active.length}</strong>
-              <span>open incident records</span>
+              <span>open issues</span>
             </li>
           </ol>
-          <div className="flag-distribution" aria-label="Quality flag distribution">
+          <div className="flag-distribution" aria-label="Data warning distribution">
             {briefing.quality.flagCounts.map((item) => (
               <div key={item.flag}>
                 <span>{item.flag.replace(/[-_]/g, " ")}</span>
@@ -222,7 +223,7 @@ export function Overview({
             ))}
           </div>
           <p className="chart-note">
-            {qualityRate.toFixed(1)}% of returned observations carry at least one quality flag. Flags stay visible rather than being converted into a health score.
+            {qualityRate.toFixed(1)}% of returned readings carry at least one data warning. Warnings stay visible rather than being converted into a health score.
           </p>
         </Panel>
       </div>
@@ -244,7 +245,7 @@ export function Overview({
           </div>
           <ThroughputChart briefing={briefing} />
           <p className="chart-note">
-            This chart uses the returned replay points. Dashed line:{" "}
+            This chart uses returned shift readings. Dashed line:{" "}
             {production.baselineValue === null ||
             production.baselineValue === undefined
               ? "baseline not returned"
@@ -264,7 +265,7 @@ export function Overview({
               <span>
                 <strong>Operating context</strong>
                 <small>
-                  The production series is an observed replay window, not a
+                  The production series is a simulated shift record, not a
                   forecast.
                 </small>
               </span>
@@ -272,10 +273,10 @@ export function Overview({
             <li>
               <b>2</b>
               <span>
-                <strong>Linked incident</strong>
+                <strong>Linked issue</strong>
                 <small>
-                  Open the priority record to see detector logic and source
-                  observations.
+                  Open the priority issue to see the automated-check reason
+                  and source readings.
                 </small>
               </span>
             </li>
@@ -284,8 +285,8 @@ export function Overview({
               <span>
                 <strong>Data quality</strong>
                 <small>
-                  Check which records were flagged and why before interpreting
-                  trends.
+                  Check which readings have data warnings and why before
+                  interpreting trends.
                 </small>
               </span>
             </li>
@@ -293,8 +294,8 @@ export function Overview({
         </Panel>
       </div>
       <Panel
-        title="Replay coverage by asset"
-        detail="Observation and quality counts are calculated from the returned replay—not estimated health scores."
+        title="Simulated-shift coverage by asset"
+        detail="Reading and data-warning counts come from the returned simulated shift—not estimated health scores."
       >
         <div className="asset-coverage">
           {briefing.assets.map((asset) => {
@@ -304,19 +305,19 @@ export function Overview({
             return (
               <article key={asset.assetId}>
                 <header>
-                  <strong>{asset.assetId}</strong>
-                  <span>{asset.observationCount.toLocaleString()} records</span>
+                  <strong>{assetLabel(asset.assetId)}</strong>
+                  <span>{asset.observationCount.toLocaleString()} readings</span>
                 </header>
                 <div
                   className="quality-bar"
                   role="img"
-                  aria-label={`${asset.flaggedCount.toLocaleString()} of ${asset.observationCount.toLocaleString()} records have a quality flag`}
+                  aria-label={`${asset.flaggedCount.toLocaleString()} of ${asset.observationCount.toLocaleString()} readings have data warnings`}
                 >
                   <span style={{ width: `${Math.min(flaggedShare, 100)}%` }} />
                 </div>
                 <footer>
-                  <span>{asset.flaggedCount.toLocaleString()} flagged</span>
-                  <span>{asset.activeIncidentCount} active incidents</span>
+                  <span>{asset.flaggedCount.toLocaleString()} data warnings</span>
+                  <span>{asset.activeIncidentCount} open issues</span>
                   <span>Latest {time(asset.latestObservedAt)}</span>
                 </footer>
               </article>
@@ -325,11 +326,11 @@ export function Overview({
         </div>
       </Panel>
       <Panel
-        title="Open incident records"
-        detail={`${active.length} records have not been resolved or dismissed.`}
+        title="Open issues"
+        detail={`${active.length} issues still need a documented review.`}
         action={
           <button className="text-button" onClick={() => onView("incidents")}>
-            All incident records
+            All issues
           </button>
         }
       >
@@ -345,7 +346,7 @@ export function Overview({
                   <Pill value={incident.severity} />
                   <strong>{incident.title}</strong>
                   <small>
-                    {incident.assetIds.join(", ")} · updated{" "}
+                    {assetLabel(incident.assetIds[0] ?? "unmapped")}; updated{" "}
                     {time(incident.updatedAt)}
                   </small>
                 </span>
@@ -353,8 +354,8 @@ export function Overview({
               </button>
             ))
           ) : (
-            <Empty title="No open incidents">
-              There are no open records in the current replay.
+            <Empty title="No open issues">
+              There are no open issues in this simulated shift.
             </Empty>
           )}
         </div>

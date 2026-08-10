@@ -15,6 +15,19 @@ const metricLabels: Record<string, string> = {
 
 export const metricLabel = (metric: string) => metricLabels[metric] ?? pretty(metric);
 
+const assetLabels: Record<string, string> = {
+  "primary-crusher-01": "Primary crusher",
+  "conveyor-17": "Conveyor",
+  "secondary-crusher-01": "Secondary crusher",
+  "screen-01": "Screen",
+  "stacker-01": "Stacker",
+  "stockpile-01": "Stockpile",
+  "feeder-01": "Feeder",
+  "wash-plant-02": "Wash plant",
+};
+
+export const assetLabel = (assetId: string) => assetLabels[assetId] ?? pretty(assetId);
+
 export const time = (value?: string) =>
   value
     ? `${new Intl.DateTimeFormat("en-US", {

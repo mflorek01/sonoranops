@@ -1,5 +1,5 @@
 import type { OperationsBriefing } from "../../lib/api/types";
-import { metricLabel, number, Panel, pretty, time } from "./shared";
+import { assetLabel, metricLabel, number, Panel, pretty, time } from "./shared";
 
 type AnalyticsView = "incidents" | "quality" | "explorer";
 
@@ -91,7 +91,7 @@ export function VisualAnalytics({
     <section className="analytics-stack" aria-label="Returned visual analytics">
       <Panel
         title="Returned signal series"
-        detail="Each small multiple is a bounded sequence returned by the API. Dots mark points with quality flags."
+        detail="Each small chart uses readings returned by the API. Dots mark data warnings."
         action={<button className="text-button" onClick={() => onView("explorer")}>Inspect source evidence</button>}
       >
         {analytics.metricSeries.length ? (
@@ -100,7 +100,7 @@ export function VisualAnalytics({
               const first = series.points[0];
               const last = series.points.at(-1);
               const flagged = series.points.filter((point) => point.qualityFlags.length).length;
-              const label = `${metricLabel(series.metric)} for ${series.assetId}: ${series.points.length} returned observations from ${number(first?.value, 2)} to ${number(last?.value, 2)} ${series.unit ?? ""}. ${flagged} points carry quality flags.`;
+              const label = `${metricLabel(series.metric)} for ${assetLabel(series.assetId)}: ${series.points.length} returned readings from ${number(first?.value, 2)} to ${number(last?.value, 2)} ${series.unit ?? ""}. ${flagged} readings have data warnings.`;
 
               return (
                 <article className="small-multiple" key={`${series.assetId}-${series.metric}`}>
@@ -108,7 +108,7 @@ export function VisualAnalytics({
                     <strong>{metricLabel(series.metric)}</strong>
                     <span>{series.unit ?? "Unit not returned"}</span>
                   </header>
-                  <p>{series.assetId}</p>
+                  <p>{assetLabel(series.assetId)}</p>
                   <Sparkline points={series.points} label={label} />
                   <footer>
                     <span>{number(first?.value, 2)}</span>
@@ -121,13 +121,13 @@ export function VisualAnalytics({
             })}
           </div>
         ) : (
-          <p className="quiet">No metric series were returned for this replay.</p>
+          <p className="quiet">No metric series were returned for this simulated shift.</p>
         )}
       </Panel>
       <div className="two-column analytics-summary">
         <Panel
-          title="Observation composition"
-          detail="The horizontal bars are shares of the returned observation kinds."
+          title="Types of readings"
+          detail="The horizontal bars show the share of each returned reading type."
         >
           {kindTotal ? (
             <div className="composition-list">
@@ -140,7 +140,7 @@ export function VisualAnalytics({
                   <div
                     className="composition-bar"
                     role="img"
-                    aria-label={`${pretty(item.key)}: ${item.count.toLocaleString()} of ${kindTotal.toLocaleString()} returned observations`}
+                    aria-label={`${pretty(item.key)}: ${item.count.toLocaleString()} of ${kindTotal.toLocaleString()} returned readings`}
                   >
                     <span style={{ width: `${(item.count / kindTotal) * 100}%` }} />
                   </div>
@@ -148,13 +148,13 @@ export function VisualAnalytics({
               ))}
             </div>
           ) : (
-            <p className="quiet">No observation-kind counts were returned.</p>
+            <p className="quiet">No reading-type counts were returned.</p>
           )}
         </Panel>
         <Panel
-          title="Incident distribution"
-          detail="Grouped by returned asset, severity, and lifecycle status."
-          action={<button className="text-button" onClick={() => onView("incidents")}>Open records</button>}
+          title="Issues by equipment, severity, and status"
+          detail="Grouped by returned equipment, urgency, and issue status."
+          action={<button className="text-button" onClick={() => onView("incidents")}>Open issues</button>}
         >
           {incidentTotal ? (
             <div className="incident-distribution">
@@ -167,7 +167,7 @@ export function VisualAnalytics({
               ))}
             </div>
           ) : (
-            <p className="quiet">No incident counts were returned.</p>
+            <p className="quiet">No issue counts were returned.</p>
           )}
         </Panel>
       </div>
@@ -188,11 +188,11 @@ export function VisualAnalytics({
                   <article>
                     <header>
                       <span>Step {index + 1}</span>
-                      {node.activeIncidentCount > 0 && <strong>{node.activeIncidentCount} incident{node.activeIncidentCount === 1 ? "" : "s"}</strong>}
+                      {node.activeIncidentCount > 0 && <strong>{node.activeIncidentCount} issue{node.activeIncidentCount === 1 ? "" : "s"}</strong>}
                     </header>
-                    <h3>{node.assetId}</h3>
+                    <h3>{assetLabel(node.assetId)}</h3>
                     <dl>
-                      <div><dt>Observations</dt><dd>{node.observationCount.toLocaleString()}</dd></div>
+                      <div><dt>Readings</dt><dd>{node.observationCount.toLocaleString()}</dd></div>
                       <div><dt>Flagged</dt><dd>{node.flaggedObservationCount.toLocaleString()}</dd></div>
                       <div><dt>Flag categories</dt><dd>{flagCount.toLocaleString()}</dd></div>
                     </dl>

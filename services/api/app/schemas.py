@@ -275,12 +275,29 @@ class ProcessNodeResponse(ContractModel):
     flagged_observation_count: int
 
 
+class SensorStateResponse(ContractModel):
+    asset_id: str
+    metric: str
+    unit: str | None
+    latest_value: float | None
+    latest_observed_at: datetime | None
+    latest_quality_flags: list[str]
+    flagged_observation_count: int
+    observation_count: int
+    linked_active_incident_count: int
+    linked_active_incident_highest_severity: str | None
+    linked_finding_count: int
+    state: Literal["critical", "attention", "data_quality", "no_issue", "no_data"]
+    reason: str
+
+
 class VisualAnalyticsResponse(ContractModel):
     metric_series: list[MetricSeriesResponse]
     observation_kind_counts: list[CountResponse]
     quality_flag_counts_by_asset: list[AssetFlagCountResponse]
     incident_counts: list[IncidentCountResponse]
     process_nodes: list[ProcessNodeResponse]
+    sensor_states: list[SensorStateResponse]
 
 
 class OperationsBriefingResponse(ContractModel):

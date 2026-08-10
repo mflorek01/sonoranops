@@ -3,7 +3,7 @@ import type {
   IncidentDetail,
   OperationsBriefing,
 } from "../../lib/api/types";
-import { Empty, metricLabel, number, Panel, Pill, pretty, time } from "./shared";
+import { assetLabel, Empty, metricLabel, number, Panel, Pill, pretty, time } from "./shared";
 
 export function Incidents({
   incidents,
@@ -14,8 +14,8 @@ export function Incidents({
 }) {
   return (
     <Panel
-      title="Incident records"
-      detail="Each record is an auditable link between findings and the source data."
+      title="Issues"
+      detail="Each issue connects an automated check to the readings that support it."
     >
       <div className="record-list">
         {incidents.map((incident) => (
@@ -28,8 +28,7 @@ export function Incidents({
               <Pill value={incident.severity} />
               <strong>{incident.title}</strong>
               <small>
-                {incident.id} · {incident.assetIds.join(", ")} ·{" "}
-                {incident.evidenceCount} linked findings
+                {assetLabel(incident.assetIds[0] ?? "unmapped")} · {incident.evidenceCount} automated checks
               </small>
             </span>
             <span>
@@ -52,10 +51,10 @@ export function IncidentRecord({
   return (
     <div className="view-stack">
       <button className="back" onClick={onBack}>
-        Back to incident records
+        Back to issues
       </button>
       <section className="record-hero">
-        <p className="record-id">Incident {incident.id}</p>
+        <p className="record-id">Issue record · {assetLabel(incident.assetIds[0] ?? "unmapped")}</p>
         <h2>{incident.title}</h2>
         <p>{incident.summary}</p>
         <div className="tag-row">
@@ -63,34 +62,42 @@ export function IncidentRecord({
           <Pill value={incident.state} />
           <span>Opened {time(incident.openedAt)}</span>
         </div>
+        <details className="technical-details">
+          <summary>Technical details</summary>
+          <p>Issue ID: {incident.id}.</p>
+        </details>
       </section>
       <div className="two-column">
         <Panel
-          title="Why this record exists"
-          detail="Detector output, not a root-cause conclusion."
+          title="Why this issue was opened"
+          detail="An automated check raised this issue. It is not a root-cause conclusion."
         >
           {incident.findings.length ? (
             <div className="finding-list">
               {incident.findings.map((finding) => (
                 <article key={finding.id}>
-                  <p className="finding-detector">
-                    {finding.detector}
-                    {finding.detectorVersion
-                      ? ` · version ${finding.detectorVersion}`
-                      : ""}
-                  </p>
                   <h3>{finding.rationale}</h3>
                   <p className="quiet">
-                    Evaluation window: {time(finding.windowStartAt)} to{" "}
+                    Check period: {time(finding.windowStartAt)} to{" "}
                     {time(finding.windowEndAt)}
                   </p>
+                  <details className="technical-details">
+                    <summary>Technical details</summary>
+                    <p>
+                      Automated-check key: {finding.detector}
+                      {finding.detectorVersion
+                        ? `, version ${finding.detectorVersion}`
+                        : ""}
+                      . Check ID: {finding.id}.
+                    </p>
+                  </details>
                 </article>
               ))}
             </div>
           ) : (
-            <Empty title="No finding detail was returned">
-              This record remains useful for lifecycle history, but it cannot
-              support an evidence review until linked finding detail is
+            <Empty title="No automated-check detail was returned">
+              This issue remains useful for review history, but it cannot
+              support a reading review until linked automated-check detail is
               available.
             </Empty>
           )}
@@ -98,9 +105,9 @@ export function IncidentRecord({
         <Panel title="Before acting" detail="Keep uncertainty visible.">
           <ul className="check-list">
             <li>Confirm the field condition and operating state.</li>
-            <li>Review quality flags before comparing observations.</li>
+            <li>Review data warnings before comparing readings.</li>
             <li>
-              Use the incident timeline as a record of decisions, not a
+              Use the issue history as a record of decisions, not a
               substitute for a field check.
             </li>
           </ul>
@@ -112,13 +119,13 @@ export function IncidentRecord({
         </Panel>
       </div>
       <Panel
-        title="Linked source observations"
-        detail="Facts returned with the incident record."
+        title="Readings behind this issue"
+        detail="Returned source readings. The app does not fill in missing evidence."
       >
         {incident.findings.some((finding) => finding.evidence.length) ? (
           <div className="evidence-table">
             <div className="evidence-head">
-              <span>Observation</span>
+              <span>Reading time</span>
               <span>Signal</span>
               <span>Quality</span>
             </div>
@@ -145,20 +152,20 @@ export function IncidentRecord({
                         <Pill key={flag} value={flag} />
                       ))
                     ) : (
-                      <span className="plain-status">No quality flags</span>
+                      <span className="plain-status">No data warnings</span>
                     )}
                   </span>
                 </div>
               ))}
           </div>
         ) : (
-          <Empty title="No linked observations were returned">
+          <Empty title="No linked readings were returned">
             The application does not infer missing evidence.
           </Empty>
         )}
       </Panel>
       <Panel
-        title="Record activity"
+        title="Issue activity"
         detail="Append-only history returned by the API."
       >
         {incident.timeline.length ? (
@@ -191,19 +198,19 @@ export function Quality({ briefing }: { briefing: OperationsBriefing }) {
     <div className="view-stack">
       <section className="quality-hero">
         <h2>
-          {number(briefing.observationCount)} observations evaluated in this
-          replay
+          {number(briefing.observationCount)} readings reviewed in this
+          simulated shift
         </h2>
         <p>
-          {number(clean)} arrived without a quality flag.{" "}
-          {number(quality.flaggedCount)} are retained with their flags rather
+          {number(clean)} arrived without a data warning.{" "}
+          {number(quality.flaggedCount)} are retained with their warnings rather
           than hidden or corrected in the interface.
         </p>
       </section>
       <div className="two-column">
         <Panel
-          title="Flags returned"
-          detail="Counts describe the observed replay, not a quality score."
+          title="Data warnings returned"
+          detail="Counts describe this simulated shift, not a quality score."
         >
           {quality.flagCounts.length ? (
             <dl className="flag-list">
@@ -215,33 +222,33 @@ export function Quality({ briefing }: { briefing: OperationsBriefing }) {
               ))}
             </dl>
           ) : (
-            <Empty title="No flag categories were returned">
-              No quality categories were supplied for this replay.
+            <Empty title="No data-warning categories were returned">
+              No data-warning categories were supplied for this simulated shift.
             </Empty>
           )}
         </Panel>
         <Panel
           title="How the application treats them"
-          detail="Quality flags are context, not a verdict."
+          detail="Data warnings are context, not a verdict."
         >
           <ul className="check-list">
-            <li>Keep the original observation and source timestamp.</li>
-            <li>Expose the flag alongside the evidence.</li>
+            <li>Keep the original reading and source timestamp.</li>
+            <li>Show the warning alongside the supporting reading.</li>
             <li>Leave the human decision and next check explicit.</li>
           </ul>
         </Panel>
       </div>
       <Panel
-        title="Asset-level replay facts"
+        title="Asset-level simulated-shift facts"
         detail="No inferred availability or health percentage."
       >
         <div className="asset-facts">
           {briefing.assets.map((asset) => (
             <article key={asset.assetId}>
-              <h3>{pretty(asset.assetId)}</h3>
+              <h3>{assetLabel(asset.assetId)}</h3>
               <dl>
                 <div>
-                  <dt>Observations</dt>
+                  <dt>Readings</dt>
                   <dd>{number(asset.observationCount)}</dd>
                 </div>
                 <div>
@@ -249,7 +256,7 @@ export function Quality({ briefing }: { briefing: OperationsBriefing }) {
                   <dd>{number(asset.flaggedCount)}</dd>
                 </div>
                 <div>
-                  <dt>Active incidents</dt>
+                  <dt>Open issues</dt>
                   <dd>{number(asset.activeIncidentCount)}</dd>
                 </div>
               </dl>

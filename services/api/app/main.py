@@ -180,7 +180,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 app_settings.openai_model,
                 session,
                 request.site_id,
-                request.messages[-1].content,
+                [{"role": item.role, "content": item.content} for item in request.messages],
                 safety_identifier,
             )
         except Exception as error:

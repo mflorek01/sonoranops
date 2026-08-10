@@ -32,7 +32,7 @@ describe("demo operations adapter", () => {
   });
 
   it("makes the analyst's unavailable state explicit in local demo mode", async () => {
-    await expect(demoApi.chat("What should I review?")).rejects.toThrow(
+    await expect(demoApi.chat([{ role: "user", content: "What should I review?" }])).rejects.toThrow(
       "AI analyst is available",
     );
   });
@@ -48,5 +48,6 @@ describe("demo operations adapter", () => {
       "conveyor-17",
       "wash-plant-02",
     ]);
+    expect(analytics?.sensorStates?.[0]?.state).toBe("critical");
   });
 });

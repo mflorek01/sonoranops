@@ -37,10 +37,17 @@ def response_tools() -> list[dict[str, Any]]:
 
 
 def governed_chat(
-    client: Any, model: str, session: Session, site_id: str, message: str, safety_identifier: str
+    client: Any,
+    model: str,
+    session: Session,
+    site_id: str,
+    message: str | list[dict[str, str]],
+    safety_identifier: str,
 ) -> dict[str, Any]:
     """Run the documented Responses function-calling loop with strict bounded tools."""
-    input_items: list[Any] = [{"role": "user", "content": message}]
+    input_items: list[Any] = (
+        message if isinstance(message, list) else [{"role": "user", "content": message}]
+    )
     citations: list[dict[str, Any]] = []
     notes = [
         "Answers are limited to read-only platform-visible evidence and do not establish "

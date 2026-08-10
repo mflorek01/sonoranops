@@ -16,7 +16,7 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Sonoran Operations Intelligence",
   description:
-    "A read-only portfolio demonstration of evidence-first industrial operations intelligence over synthetic aggregate-plant data.",
+    "A read-only portfolio demonstration using a simulated aggregate-plant shift and a real deployed application.",
 };
 
 export default function RootLayout({

@@ -7,36 +7,32 @@ import type {
   OperationsBriefing,
 } from "../../lib/api/types";
 import { selectPriorityIncident } from "./incident-priority";
-import { Empty, Loading, Panel, pretty, time } from "./shared";
+import { assetLabel, Empty, Loading, metricLabel, Panel, pretty, time } from "./shared";
 
-function recordSummary(record: Record<string, unknown>) {
-  if (Array.isArray(record.linked_findings) || Array.isArray(record.timeline)) {
-    const findings = Array.isArray(record.linked_findings)
-      ? record.linked_findings.length
-      : 0;
-    const timeline = Array.isArray(record.timeline)
-      ? record.timeline.length
-      : 0;
+function RecordSummary({ record }: { record: Record<string, unknown> }) {
+  const title = typeof record.title === "string" ? record.title : undefined;
+  const rationale = typeof record.rationale === "string" ? record.rationale : undefined;
+  const assetId = typeof record.asset_id === "string" ? record.asset_id : undefined;
+  const metric = typeof record.metric === "string" ? record.metric : undefined;
+  const value = typeof record.value === "number" ? record.value : undefined;
+  const when = typeof record.observed_at === "string" ? record.observed_at : undefined;
+  const findings = Array.isArray(record.linked_findings) ? record.linked_findings.length : undefined;
 
-    return [
-      record.title ? String(record.title) : "Incident evidence record",
-      `${findings} linked finding${findings === 1 ? "" : "s"}`,
-      `${timeline} timeline entr${timeline === 1 ? "y" : "ies"}`,
-    ];
-  }
-
-  const keys = [
-    "title",
-    "rationale",
-    "metric",
-    "value",
-    "asset_id",
-    "incident_id",
-    "id",
-  ];
-  return keys
-    .filter((key) => record[key] !== undefined && record[key] !== null)
-    .map((key) => `${pretty(key)}: ${String(record[key])}`);
+  return (
+    <article>
+      <h3>{title ?? (rationale ? "Automated check" : metric ? "Reading" : "Returned record")}</h3>
+      {rationale && <p><strong>What happened:</strong> {rationale}</p>}
+      {assetId && <p><strong>Equipment:</strong> {assetLabel(assetId)}</p>}
+      {metric && <p><strong>Reading:</strong> {metricLabel(metric)}{value === undefined ? " was not returned." : ` was ${value}.`}</p>}
+      {when && <p><strong>Recorded at:</strong> {time(when)}</p>}
+      {findings !== undefined && <p><strong>Why it was flagged:</strong> {findings ? `${findings} linked automated check${findings === 1 ? "" : "s"}.` : "No linked automated check was returned."}</p>}
+      {!title && !rationale && !metric && <p>What this record is about was not returned.</p>}
+      <details className="technical-details">
+        <summary>Technical details</summary>
+        <pre>{JSON.stringify(record, null, 2)}</pre>
+      </details>
+    </article>
+  );
 }
 
 function Citation({
@@ -93,22 +89,22 @@ export function EvidenceExplorer({ incidents }: { incidents: Incident[] }) {
   return (
     <div className="view-stack">
       <section className="explorer-hero">
-        <h2>Bounded queries over the deployed record</h2>
+        <h2>Look up the records behind the screen</h2>
         <p>
-          These tools retrieve source-backed records. They do not diagnose a
-          root cause, make a recommendation, or use a generative model.
+          These lookups return source-backed readings. They do not diagnose a
+          root cause, make a recommendation, or change equipment.
         </p>
         <div className="query-actions">
           <button
             className="primary"
             onClick={() => void run("list_recent_incidents", { limit: 10 })}
           >
-            Open incidents
+            Open issues
           </button>
           <button
             onClick={() => void run("list_recent_findings", { limit: 10 })}
           >
-            Recent findings
+            Recent automated checks
           </button>
           {priorityIncident && (
             <button
@@ -139,20 +135,13 @@ export function EvidenceExplorer({ incidents }: { incidents: Incident[] }) {
           <div className="result-list">
             {result.records.length ? (
               result.records.map((record, index) => {
-                const summary = recordSummary(record);
                 return (
-                  <article key={index}>
-                    {summary.length ? (
-                      summary.map((line) => <p key={line}>{line}</p>)
-                    ) : (
-                      <p>Record returned without a displayable summary.</p>
-                    )}
-                  </article>
+                  <RecordSummary key={index} record={record} />
                 );
               })
             ) : (
               <Empty title="No records matched this query">
-                Try an alternative bounded query.
+                Try another limited record lookup.
               </Empty>
             )}
           </div>
@@ -207,9 +196,9 @@ export function HowItWorks({
       <section className="how-hero">
         <h2>Evidence stays separate from a scenario&apos;s hidden answer.</h2>
         <p>
-          A synthetic aggregate-plant replay enters through the validated
-          ingestion API. The platform receives observations, source timestamps,
-          and quality flags—not scenario ground truth.
+          A simulated aggregate-plant shift enters through the validated
+          ingestion API. The platform receives readings, source timestamps,
+          and data warnings—not the simulator’s private answer key.
         </p>
       </section>
       <section className="static-answer" aria-labelledby="static-answer-title">
@@ -217,14 +206,14 @@ export function HowItWorks({
           <h2 id="static-answer-title">Are these static charts?</h2>
           <p>
             No. The browser fetches stored records through the deployed API and renders each count,
-            sequence, and visual from that response. The synthetic replay is intentionally frozen so
+            sequence, and visual from that response. The simulated shift is intentionally frozen so
             the same evidence can be reviewed reproducibly.
           </p>
         </div>
         <ol className="boundary-pipeline" aria-label="Current record pipeline">
-          <li><strong>{briefing.observationCount.toLocaleString()}</strong><span>stored observations</span></li>
-          <li><strong>{linkedFindingCount.toLocaleString()}</strong><span>linked findings</span></li>
-          <li><strong>{activeIncidentCount.toLocaleString()}</strong><span>open incidents</span></li>
+          <li><strong>{briefing.observationCount.toLocaleString()}</strong><span>stored readings</span></li>
+          <li><strong>{linkedFindingCount.toLocaleString()}</strong><span>linked automated checks</span></li>
+          <li><strong>{activeIncidentCount.toLocaleString()}</strong><span>open issues</span></li>
         </ol>
       </section>
       <section className="truth-table" aria-labelledby="truth-table-title">
@@ -232,11 +221,11 @@ export function HowItWorks({
         <div>
           <article>
             <h3>Simulated</h3>
-            <p>Aggregate-plant measurements, assets, site context, and replay timing are synthetic.</p>
+            <p>Aggregate-plant measurements, assets, site context, and simulated-shift timing are synthetic.</p>
           </article>
           <article>
             <h3>Real software</h3>
-            <p>HTTP ingestion, Postgres persistence, quality rules and detectors, APIs, UI workflows, and bounded AI tools.</p>
+            <p>The app receives, stores, checks, and displays the records through a deployed database and service.</p>
           </article>
           <article>
             <h3>Not claimed</h3>
@@ -246,20 +235,20 @@ export function HowItWorks({
       </section>
       <section className="boundary-summary" aria-labelledby="boundary-summary-title">
         <div>
-          <h2 id="boundary-summary-title">What this public replay contains</h2>
+          <h2 id="boundary-summary-title">What this public simulated shift contains</h2>
           <p>
-            The interface is connected to a deployed application. The observations are synthetic so
+            The interface is connected to a deployed application. The readings are simulated so
             the portfolio can demonstrate ingestion, auditability, and review without representing
             a live plant.
           </p>
         </div>
         <dl>
           <div>
-            <dt>Stored observations</dt>
+            <dt>Stored readings</dt>
             <dd>{briefing.observationCount.toLocaleString()}</dd>
           </div>
           <div>
-            <dt>Quality-flagged records</dt>
+            <dt>Readings with data warnings</dt>
             <dd>{briefing.flaggedCount.toLocaleString()}</dd>
           </div>
           <div>
@@ -271,18 +260,17 @@ export function HowItWorks({
       <div className="architecture">
         <article>
           <b>1</b>
-          <h3>Replay data</h3>
+          <h3>Simulated shift data</h3>
           <p>
-            Messy, time-stamped observations enter through the validated
-            ingestion API.
+            Messy, time-stamped readings enter through the working data service.
           </p>
         </article>
         <article>
           <b>2</b>
-          <h3>Findings and incidents</h3>
+          <h3>Automated checks and issues</h3>
           <p>
-            Detectors preserve their rationale, evaluation window, and linked
-            source observations.
+            Automated checks preserve their reason, check period, and linked
+            source readings.
           </p>
         </article>
         <article>
@@ -300,7 +288,7 @@ export function HowItWorks({
           detail="The public site is intentionally constrained."
         >
           <ul className="check-list">
-            <li>The replay supplies observations, timestamps, quality flags, and detector outputs.</li>
+            <li>The simulated shift supplies readings, timestamps, data warnings, and automated-check outputs.</li>
             <li>It does not provide a hidden scenario answer, control commands, or a root-cause label.</li>
             <li>Human review and field verification remain outside this portfolio deployment.</li>
           </ul>
@@ -313,15 +301,19 @@ export function HowItWorks({
             </div>
             <div>
               <dt>Finding</dt>
-              <dd>A detector output with rationale and an evaluation window.</dd>
+              <dd>An automated check with a reason and a check period.</dd>
             </div>
             <div>
               <dt>Incident</dt>
-              <dd>An auditable review record that links findings and lifecycle history.</dd>
+              <dd>A review record that links automated checks and its history.</dd>
             </div>
           </dl>
         </Panel>
       </div>
+      <details className="technical-details">
+        <summary>Technical details</summary>
+        <p>The deployed application uses HTTP ingestion, a Postgres database, and APIs to receive, store, check, and return records.</p>
+      </details>
       <Panel
         title="Scope of this public deployment"
         detail="A portfolio review environment, not a production control system."
@@ -331,7 +323,7 @@ export function HowItWorks({
             Read-only access prevents public changes to incident lifecycle
             records.
           </li>
-          <li>Evidence explorer queries are bounded and cited.</li>
+          <li>Record lookups are limited and show their sources.</li>
           <li>
             Live operational decisions still require site procedures and field
             verification.

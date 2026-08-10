@@ -76,6 +76,25 @@ as detector evidence. See [DATA_CONTRACTS.md](DATA_CONTRACTS.md) for the
 contract boundary and [INTEGRATION.md](INTEGRATION.md) for the implemented
 detector rules.
 
+## Equipment diagram legend and state language
+
+Treat an equipment diagram as an evidence index, not a live plant image. Its
+visible legend must say: **“Equipment review order — not a plant map or live
+status display.”** A visitor should be able to see what each marker means
+without reading hover text.
+
+For every equipment marker/card, render: a friendly equipment name; the number
+of stored readings and latest recorded time; the number of data warnings; and
+the number of issues to review. Use accurate absence language: **“No open issue
+in this demo window”** rather than “healthy,” “normal,” “online,” or a green
+status dot. State explicitly that an issue count is a review priority, not a
+fault probability or equipment-condition score.
+
+Use arrows only for a documented returned relationship. If positions are only
+there to organize review, show numbered placement and call the display an
+equipment review order. Selecting an asset should lead to its observed facts,
+data warnings, and related issues—not an inferred health percentage.
+
 ## Synthetic replay versus a real deployment
 
 The data path is real application behavior using synthetic inputs: the

@@ -2,6 +2,7 @@ import type {
   AssistantEvidenceResult,
   AssistantToolName,
   AnalystResponse,
+  ChatMessage,
   Finding,
   Incident,
   IncidentDetail,
@@ -133,6 +134,21 @@ type ApiBriefing = {
       active_incident_count: number;
       flagged_observation_count: number;
     }>;
+    sensor_states?: Array<{
+      asset_id: string;
+      metric: string;
+      unit?: string | null;
+      latest_value?: number | null;
+      latest_observed_at?: string;
+      latest_quality_flags?: string[];
+      flagged_observation_count: number;
+      observation_count: number;
+      linked_active_incident_count: number;
+      linked_active_incident_highest_severity?: string | null;
+      linked_finding_count: number;
+      state: "critical" | "attention" | "data_quality" | "no_issue" | "no_data";
+      reason: string;
+    }>;
   };
 };
 
@@ -150,7 +166,7 @@ const toIncident = (incident: ApiIncident): Incident => ({
   assetIds: incident.asset_refs.map((asset) => asset.asset_id),
   openedAt: incident.opened_at,
   updatedAt: incident.updated_at,
-  summary: `${incident.finding_ids?.length ?? 0} linked platform finding${(incident.finding_ids?.length ?? 0) === 1 ? "" : "s"}.`,
+  summary: `${incident.finding_ids?.length ?? 0} linked automated check${(incident.finding_ids?.length ?? 0) === 1 ? "" : "s"}.`,
   evidenceCount: incident.finding_ids?.length ?? 0,
 });
 const toObservation = (item: ApiObservation) => ({
@@ -282,6 +298,22 @@ const toBriefing = (data: ApiBriefing): OperationsBriefing => ({
           activeIncidentCount: item.active_incident_count,
           flaggedObservationCount: item.flagged_observation_count,
         })),
+        sensorStates: data.visual_analytics.sensor_states?.map((item) => ({
+          assetId: item.asset_id,
+          metric: item.metric,
+          unit: item.unit ?? undefined,
+          latestValue: item.latest_value,
+          latestObservedAt: item.latest_observed_at,
+          latestQualityFlags: item.latest_quality_flags ?? [],
+          flaggedObservationCount: item.flagged_observation_count,
+          observationCount: item.observation_count,
+          linkedActiveIncidentCount: item.linked_active_incident_count,
+          linkedActiveIncidentHighestSeverity:
+            item.linked_active_incident_highest_severity ?? undefined,
+          linkedFindingCount: item.linked_finding_count,
+          state: item.state,
+          reason: item.reason,
+        })),
       }
     : undefined,
 });
@@ -392,7 +424,7 @@ class HttpOperationsApi implements OperationsApi {
       truncated: response.truncated,
     };
   }
-  async chat(message: string): Promise<AnalystResponse> {
+  async chat(messages: ChatMessage[]): Promise<AnalystResponse> {
     const response = await this.request<{
       answer?: string;
       response?: string;
@@ -414,7 +446,7 @@ class HttpOperationsApi implements OperationsApi {
       method: "POST",
       body: JSON.stringify({
         site_id: "sonoran-west",
-        messages: [{ role: "user", content: message }],
+        messages,
       }),
     });
 

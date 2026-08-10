@@ -55,7 +55,7 @@ export function IncidentRecord({
         Back to incident records
       </button>
       <section className="record-hero">
-        <p className="eyebrow">Incident {incident.id}</p>
+        <p className="record-id">Incident {incident.id}</p>
         <h2>{incident.title}</h2>
         <p>{incident.summary}</p>
         <div className="tag-row">
@@ -73,7 +73,7 @@ export function IncidentRecord({
             <div className="finding-list">
               {incident.findings.map((finding) => (
                 <article key={finding.id}>
-                  <p className="eyebrow">
+                  <p className="finding-detector">
                     {finding.detector}
                     {finding.detectorVersion
                       ? ` · version ${finding.detectorVersion}`
@@ -190,7 +190,6 @@ export function Quality({ briefing }: { briefing: OperationsBriefing }) {
   return (
     <div className="view-stack">
       <section className="quality-hero">
-        <p className="eyebrow">Data quality record</p>
         <h2>
           {number(briefing.observationCount)} observations evaluated in this
           replay

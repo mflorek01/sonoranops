@@ -92,7 +92,6 @@ export function EvidenceExplorer({ incidents }: { incidents: Incident[] }) {
   return (
     <div className="view-stack">
       <section className="explorer-hero">
-        <p className="eyebrow">Evidence explorer</p>
         <h2>Bounded queries over the deployed record</h2>
         <p>
           These tools retrieve source-backed records. They do not diagnose a
@@ -192,7 +191,6 @@ export function HowItWorks() {
   return (
     <div className="view-stack">
       <section className="how-hero">
-        <p className="eyebrow">How this portfolio demonstration works</p>
         <h2>Evidence stays separate from a scenario&apos;s hidden answer.</h2>
         <p>
           A synthetic aggregate-plant replay enters through the validated

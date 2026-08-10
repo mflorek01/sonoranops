@@ -102,7 +102,6 @@ export function Overview({
         aria-labelledby="operating-story-title"
       >
         <div>
-          <p className="eyebrow">Current operating story</p>
           <h2 id="operating-story-title">
             {priority?.title ?? "No open incidents in this replay"}
           </h2>

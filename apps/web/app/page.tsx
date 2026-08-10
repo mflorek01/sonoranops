@@ -313,7 +313,7 @@ export default function Workspace() {
       <section className="workspace">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Synthetic aggregate-plant replay</p>
+            <p className="topbar-status">Synthetic aggregate-plant replay</p>
             <h1>{displayTitle}</h1>
           </div>
           <button className="refresh" onClick={() => void refresh()}>

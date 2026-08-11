@@ -118,4 +118,6 @@ def test_chat_instructs_provider_to_use_friendly_plant_language(client) -> None:
     assert "vibration_mm_s to vibration" in instructions
     assert "Never include internal IDs" in instructions
     assert "explicitly asks for technical details" in instructions
+    assert "human-readable Arizona site time" in instructions
+    assert "never include ISO 8601 timestamps in prose" in instructions
     assert "Keep citations intact" in instructions

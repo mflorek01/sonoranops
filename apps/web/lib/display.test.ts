@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { incidentDisplayTitle, sensorButtonLabel } from "./display";
+import {
+  incidentDisplayTitle,
+  replayModeLabel,
+  sensorButtonLabel,
+} from "./display";
 
 describe("incidentDisplayTitle", () => {
   it("turns generic operational titles into friendly equipment language", () => {
@@ -37,6 +41,20 @@ describe("sensorButtonLabel", () => {
   it("keeps the status beside a real metric", () => {
     expect(sensorButtonLabel("vibration_mm_s", "Critical issue linked")).toBe(
       "Vibration: Critical issue linked",
+    );
+  });
+});
+
+describe("replayModeLabel", () => {
+  it("turns internal replay modes into plain simulated-shift wording", () => {
+    expect(replayModeLabel("stored_observation_replay")).toBe(
+      "recorded simulated shift",
+    );
+    expect(replayModeLabel("synthetic replay")).toBe(
+      "recorded simulated shift",
+    );
+    expect(replayModeLabel("frozen-synthetic-replay")).toBe(
+      "recorded simulated shift",
     );
   });
 });

@@ -25,8 +25,11 @@ SYSTEM_INSTRUCTIONS = (
     "primary-crusher-01 to primary crusher, secondary-crusher-01 to secondary crusher, "
     "screen-01 to screen, vibration_mm_s to vibration, and similarly translate other internal "
     "identifiers. Never include internal IDs, snake_case metric keys, raw tool names, or database "
-    "field names unless the user explicitly asks for technical details. Keep citations intact and "
-    "do not rewrite tool payloads."
+    "field names unless the user explicitly asks for technical details. Describe times in concise, "
+    "human-readable Arizona site time by default; never include ISO 8601 timestamps in prose "
+    "unless "
+    "the user explicitly asks for technical details. Keep citations intact and do not rewrite tool "
+    "payloads."
 )
 
 

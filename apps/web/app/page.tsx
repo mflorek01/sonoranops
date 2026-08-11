@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiMode, operationsApi } from "../lib/api/client";
+import { replayModeLabel } from "../lib/display";
 import type {
   Incident,
   IncidentDetail,
@@ -430,8 +431,9 @@ export default function Workspace() {
           )}
         </div>
         <footer>
-          Simulated shift: {briefing?.replay.mode ?? "Loading"} · latest
-          reading {time(briefing?.latestObservedAt)}
+          Simulated shift:{" "}
+          {briefing ? replayModeLabel(briefing.replay.mode) : "Loading"} ·
+          latest reading {time(briefing?.latestObservedAt)}
         </footer>
       </section>
     </main>

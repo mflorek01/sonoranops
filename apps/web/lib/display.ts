@@ -47,3 +47,10 @@ export const sensorButtonLabel = (
   metric === "no_metric_observed"
     ? "No sensor data returned"
     : `${metricLabel(metric)}: ${statusLabel}`;
+
+export const replayModeLabel = (mode: string) => {
+  const normalized = mode.trim().toLowerCase().replace(/[-_]+/g, " ");
+  return /(replay|synthetic|simulated)/.test(normalized)
+    ? "recorded simulated shift"
+    : normalized;
+};

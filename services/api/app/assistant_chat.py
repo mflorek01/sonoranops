@@ -117,6 +117,32 @@ def governed_chat(
                 )
         input_items.extend(response.output)
         input_items.extend(outputs)
+    if tools_used:
+        try:
+            synthesis = client.responses.create(
+                model=model,
+                instructions=(
+                    SYSTEM_INSTRUCTIONS
+                    + " The tool budget is exhausted. Answer now using only the evidence already "
+                    "provided. Do not request or imply any additional tool call."
+                ),
+                input=input_items,
+                store=False,
+                max_output_tokens=800,
+                safety_identifier=safety_identifier,
+            )
+            answer = getattr(synthesis, "output_text", "")
+            if answer:
+                if getattr(synthesis, "status", None) == "incomplete":
+                    notes.append(
+                        "The final synthesis was incomplete; review the cited evidence directly."
+                    )
+                notes.append(
+                    "Tool rounds were capped; the final answer used collected evidence only."
+                )
+                return _final(answer, citations, notes, tools_used)
+        except Exception:
+            pass
     return _final(
         "The evidence query reached its bounded tool limit. Please narrow the question.",
         citations,

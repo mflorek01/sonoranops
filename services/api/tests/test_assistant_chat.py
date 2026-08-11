@@ -121,3 +121,44 @@ def test_chat_instructs_provider_to_use_friendly_plant_language(client) -> None:
     assert "human-readable Arizona site time" in instructions
     assert "never include ISO 8601 timestamps in prose" in instructions
     assert "Keep citations intact" in instructions
+
+
+def test_tool_exhaustion_uses_one_tool_free_synthesis(client) -> None:
+    class ExhaustingResponses:
+        def __init__(self) -> None:
+            self.requests: list[dict[str, object]] = []
+
+        def create(self, **kwargs: object) -> SimpleNamespace:
+            self.requests.append(kwargs)
+            if len(self.requests) <= 3:
+                return SimpleNamespace(
+                    output=[
+                        SimpleNamespace(
+                            type="function_call",
+                            name="list_recent_incidents",
+                            arguments="{}",
+                            call_id=f"call-{len(self.requests)}",
+                        )
+                    ],
+                    output_text="",
+                )
+            return SimpleNamespace(
+                output=[],
+                output_text="Review the primary crusher vibration first.",
+                status="completed",
+            )
+
+    fake = ExhaustingResponses()
+    with Session(client.app.state.engine) as session:
+        result = governed_chat(
+            SimpleNamespace(responses=fake),
+            "test-model",
+            session,
+            "empty-site",
+            "What should I review?",
+            "test-id",
+        )
+    assert result["answer"] == "Review the primary crusher vibration first."
+    assert len(fake.requests) == 4
+    assert "tools" not in fake.requests[-1]
+    assert result["tools_used"] == ["list_recent_incidents"]

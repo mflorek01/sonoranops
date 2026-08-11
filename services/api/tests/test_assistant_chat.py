@@ -100,3 +100,22 @@ def test_chat_forwards_bounded_conversation_history(client) -> None:
             SimpleNamespace(responses=fake), "test-model", session, "empty-site", history, "test-id"
         )
     assert fake.requests[0]["input"] == history
+
+
+def test_chat_instructs_provider_to_use_friendly_plant_language(client) -> None:
+    fake = FakeResponses()
+    with Session(client.app.state.engine) as session:
+        governed_chat(
+            SimpleNamespace(responses=fake),
+            "test-model",
+            session,
+            "empty-site",
+            "What should I review?",
+            "test-id",
+        )
+    instructions = str(fake.requests[0]["instructions"])
+    assert "primary-crusher-01 to primary crusher" in instructions
+    assert "vibration_mm_s to vibration" in instructions
+    assert "Never include internal IDs" in instructions
+    assert "explicitly asks for technical details" in instructions
+    assert "Keep citations intact" in instructions

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { OperationsBriefing } from "../../lib/api/types";
+import { sensorButtonLabel } from "../../lib/display";
 import { assetLabel, metricLabel, number, Panel, pretty, time } from "./shared";
 
 type SensorState = NonNullable<
@@ -61,7 +62,7 @@ function SensorButton({
       aria-pressed={selected}
     >
       <span aria-hidden="true" />
-      {metricLabel(sensor.metric)}: {stateText[sensor.state]}
+      {sensorButtonLabel(sensor.metric, stateText[sensor.state])}
     </button>
   );
 }

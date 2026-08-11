@@ -65,6 +65,7 @@ export function IncidentRecord({
         <details className="technical-details">
           <summary>Technical details</summary>
           <p>Issue ID: {incident.id}.</p>
+          {incident.sourceTitle && <p>Source title: {incident.sourceTitle}</p>}
         </details>
       </section>
       <div className="two-column">

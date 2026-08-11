@@ -13,6 +13,7 @@ import type {
   TransitionInput,
 } from "./types";
 import { demoApi } from "./demo";
+import { incidentDisplayTitle } from "../display";
 
 const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
 const rawBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -158,17 +159,22 @@ const severityFor = (severity: ApiIncident["severity"]): Severity =>
     : severity === "warning"
       ? "medium"
       : "low";
-const toIncident = (incident: ApiIncident): Incident => ({
-  id: incident.incident_id,
-  title: incident.title,
-  state: incident.status,
-  severity: severityFor(incident.severity),
-  assetIds: incident.asset_refs.map((asset) => asset.asset_id),
-  openedAt: incident.opened_at,
-  updatedAt: incident.updated_at,
-  summary: `${incident.finding_ids?.length ?? 0} linked automated check${(incident.finding_ids?.length ?? 0) === 1 ? "" : "s"}.`,
-  evidenceCount: incident.finding_ids?.length ?? 0,
-});
+const toIncident = (incident: ApiIncident): Incident => {
+  const assetIds = incident.asset_refs.map((asset) => asset.asset_id);
+  const title = incidentDisplayTitle(incident.title, assetIds);
+  return {
+    id: incident.incident_id,
+    title,
+    sourceTitle: title === incident.title ? undefined : incident.title,
+    state: incident.status,
+    severity: severityFor(incident.severity),
+    assetIds,
+    openedAt: incident.opened_at,
+    updatedAt: incident.updated_at,
+    summary: `${incident.finding_ids?.length ?? 0} linked automated check${(incident.finding_ids?.length ?? 0) === 1 ? "" : "s"}.`,
+    evidenceCount: incident.finding_ids?.length ?? 0,
+  };
+};
 const toObservation = (item: ApiObservation) => ({
   id: item.observation_id,
   observedAt: item.observed_at,

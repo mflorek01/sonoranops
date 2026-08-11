@@ -10,6 +10,7 @@ export type Severity = "critical" | "high" | "medium" | "low";
 export interface Incident {
   id: string;
   title: string;
+  sourceTitle?: string;
   state: IncidentState;
   severity: Severity;
   assetIds: string[];

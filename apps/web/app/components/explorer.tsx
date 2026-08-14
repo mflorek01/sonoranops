@@ -229,7 +229,7 @@ export function HowItWorks({
           </article>
           <article>
             <h3>Not claimed</h3>
-            <p>Live Granite data, validated failure prediction, production control, or safety authority.</p>
+            <p>Live customer data, validated failure prediction, production control, or safety authority.</p>
           </article>
         </div>
       </section>

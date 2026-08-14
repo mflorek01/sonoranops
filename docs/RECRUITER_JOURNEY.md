@@ -14,10 +14,10 @@ those decisions in a short, self-directed review.
 
 Sonoran is a portfolio demonstration for a fictional aggregate operation. It
 shows how an operations-data application can turn messy, time-stamped signals
-into an evidence-led investigation. It is not a Granite product, does not use
-Granite branding, and does not claim access to Granite data or workflows.
+into an evidence-led investigation. It is an independent portfolio project and
+does not claim access to any customer data or workflows.
 
-The primary visitor is a Granite recruiter or a hiring manager assessing an
+The primary visitor is a recruiter or hiring manager assessing an
 industrial AI, analytics, applications, or data-product candidate. They are
 likely to ask:
 
@@ -127,7 +127,7 @@ Sonoran **does** demonstrate:
 
 Sonoran **does not** claim:
 
-- A live connection to Granite, a customer, or any plant system.
+- A live connection to a customer or any plant system.
 - PLC/SCADA control, safety certification, outage prevention, or autonomous
   operational action.
 - Mechanical root-cause determination from telemetry alone.
@@ -139,7 +139,7 @@ This boundary is product content, not a legal footnote. It appears in the
 orientation panel, evidence explorer disclosure, README, and architecture
 documentation.
 
-## Role alignment without borrowing Granite’s identity
+## Role alignment without borrowing an employer’s identity
 
 The demo should speak to the work relevant to a construction-materials and
 aggregate operator: safety-minded investigation, production continuity,
@@ -147,7 +147,7 @@ equipment/process ambiguity, data stewardship, and respectful collaboration
 between operations and engineering. It should use general phrases such as
 “aggregate operations use case” and “asset-intensive production environment.”
 
-It must not use Granite logos, internal terminology, colors, customer stories,
+It must not use employer logos, internal terminology, colors, customer stories,
 or language implying endorsement. The recruiter should be able to recognize
 the role fit from the quality of the product decisions, not from simulated
 co-branding.

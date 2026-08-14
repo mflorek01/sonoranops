@@ -9,7 +9,7 @@ incidents, evidence, and a bounded investigation experience.
 
 **Repository:** [github.com/mflorek01/sonoranops](https://github.com/mflorek01/sonoranops)
 
-The demo is read-only, uses no customer or Granite data, and makes no claim of
+The demo is read-only, uses no customer data, and makes no claim of
 plant control, safety certification, autonomous action, or mechanical root
 cause. It is intended to show the application and data-product decisions that
 would be needed for an asset-intensive operations use case.
